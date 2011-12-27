@@ -1,9 +1,13 @@
+#!/usr/bin/env python
+
 import os
 import subprocess
 import re
 import pprint
 import sys
 import json
+
+import aggregate
 
 # Function used to capture all output from a program it executes.
 # Executes the whole program before returning any output.
@@ -110,3 +114,86 @@ def dump_json(filename, results):
 	f = open(filename, "w")
 	json.dump(results, f)
 	f.close()
+
+# Functions that should be exposed to main are below:
+
+def run(suite):
+	total_result_table = {}
+	for program in suite.programs:
+
+		if (len(suite.argument_variables) == 0):
+			total_result_table[(program, None)] = run_experiment(program)
+		else:
+			for experiment_arguments in get_experiment_arguments(suite.argument_variables):
+				total_result_table[program + " " + experiment_arguments] = run_experiment(program, experiment_arguments)
+
+	return total_result_table
+
+def run_experiment(program, experiment_arguments = ""): 
+
+	experiment_table = {}
+
+	for benchmark in suite.benchmarks:
+
+		run_table = []
+		failed_iterations = 0
+
+		for i in range(suite.iterations):
+
+			run = {}
+
+			invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
+
+			print "RUN: '" + invocation + "' (ITER: " + str(i+1) + "/" + str(suite.iterations) + ")"
+
+			raw = ""
+			try:
+				raw = execute_and_capture_output(invocation)
+				for (field, field_filter) in suite.filters.items():
+					run[field] = run_filter(raw, field_filter)
+
+				run = cleanup_run(run)
+
+				run_table.append(run)
+			except Exception:
+				failed_iterations += 1
+
+		benchmark_result = {}
+		benchmark_result["successes"] = len(run_table)
+		benchmark_result["failures"] = failed_iterations
+		benchmark_result["attempts"] = len(run_table) + failed_iterations
+
+		if len(run_table) > 0:
+			benchmark_result["runs"] = run_table
+			benchmark_result["aggregates"] = {}
+			for (field, (a, key_field)) in suite.aggregates.items():
+				benchmark_result["aggregates"][field] = aggregate.aggregate(a, run_table, key_field)
+
+		experiment_table[benchmark] = benchmark_result
+	
+	return experiment_table
+
+
+def print_results(results):
+	simple_print(results)
+
+def save_results(filename, results):
+	dump_json(filename, results)
+
+def print_usage():
+	print "usage: marky.py <benchmark description file> [--save] [--print]"
+	
+if __name__ == "__main__":
+	suite = 0
+	if (len(sys.argv) > 1):
+		suite = __import__(sys.argv[1])
+	else:
+		print "Unable to load a benchmark description file!"
+		print_usage
+		exit(1)
+
+	results = run(suite)
+	if ("--print" in sys.argv):
+		print_results(results)
+	if ("--save" in sys.argv):
+		save_results("output.json", results)
