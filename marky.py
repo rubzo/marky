@@ -1,28 +1,12 @@
 #!/usr/bin/env python
 
-import os
-import subprocess
-import re
-import pprint
-import sys
-import json
+import os, subprocess, re, sys, pprint, json
 
 import aggregate
 
 # Function used to capture all output from a program it executes.
 # Executes the whole program before returning any output.
-def unsafe_execute_and_capture_output(program):
-	p = subprocess.Popen(program, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
-	output = ""
-	line = p.stdout.readline()
-	while line:
-		output += line
-		line = p.stdout.readline()
-	return output
-
-# Function used to capture all output from a program it executes.
-# Executes the whole program before returning any output.
-def safe_execute_and_capture_output(program):
+def execute_and_capture_output(program):
 	output = 0
 	try:
 		output = subprocess.check_output(program, shell=True, stderr=subprocess.STDOUT)
@@ -30,8 +14,6 @@ def safe_execute_and_capture_output(program):
 		# TODO: Work out how on earth I get information about the error!
 		raise e
 	return output
-
-execute_and_capture_output = safe_execute_and_capture_output
 
 # Implementation of pushd
 directories = []
@@ -75,16 +57,18 @@ def convert_data(s):
 	return n
 
 # For a run, converts all the data in it to the correct type.
-def cleanup_run(r):
-	for key in r.keys():
-		r[key] = convert_data(r[key])
-	return r
+def cleanup_run(run):
+	for field in run.keys():
+		run[field] = convert_data(run[field])
+	return run
 
+# Turn (key, value) into the appropriate argument format for execution.
 def emit_argument(key, value):
 	if (key[-1] == '='):
 		return key + str(value)
 	return key + " " + str(value)
 
+# A recursive function for building up arguments to be used in the experiment.
 def build_experiment_arguments(exp_args, arg_vars):
 	if len(arg_vars) == 0:
 		return exp_args
@@ -100,16 +84,18 @@ def build_experiment_arguments(exp_args, arg_vars):
 					new_exp_args.append(arg + " " + emit_argument(key, v))
 		return build_experiment_arguments(new_exp_args, arg_vars)
 
+# From a given dict of argument (key, value) pairs, generate all possible combinations.
 def get_experiment_arguments(arg_vars):
 	exp_args = []
 	arg_vars_copy = dict(arg_vars)
 	exp_args = build_experiment_arguments(exp_args, arg_vars_copy)
 	return exp_args
 
-# Just uses a simple pretty printer.
+# Just use the simple pprint pretty printer.
 def simple_print(results):
 	pprint.pprint(results)
 
+# Store data to disk with JSON.
 def dump_json(filename, results):
 	f = open(filename, "w")
 	json.dump(results, f)
@@ -117,6 +103,8 @@ def dump_json(filename, results):
 
 # Functions that should be exposed to main are below:
 
+# This function is actually used to execute the experiments.
+# It returns a currently-amorphous table of information about the experiments.
 def run(suite):
 	total_result_table = {}
 	for program in suite.programs:
@@ -173,27 +161,62 @@ def run_experiment(program, experiment_arguments = ""):
 	
 	return experiment_table
 
-
+# Used by the main function below, change which function implements the service here.
+# Prints the results!
 def print_results(results):
 	simple_print(results)
 
+# Used by the main function below, change which function implements the service here.
+# Saves the results!
 def save_results(filename, results):
 	dump_json(filename, results)
 
+# Prints usage!
 def print_usage():
-	print "usage: marky.py <benchmark description file> [--save] [--print]"
+	print "usage: marky.py --file <description file> [--save <file>] [--print]"
+
+# Prints help!
+def print_help():
+	print "marky - a benchmark execution and statistics gathering framework"
+	print_usage()
+	print
+	print " --file <description file> - a file containing an execution configuration"
+	print " --save <file>             - output the results into a JSON file"
+	print " --print                   - \"pretty-print\" the results"
 	
+#
+# MAIN FUNCTION
+#
 if __name__ == "__main__":
+
+	if ('-h' in sys.argv or '--help' in sys.argv):
+		print_help()
+		exit(0)
+
+	success = True
 	suite = 0
-	if (len(sys.argv) > 1):
-		suite = __import__(sys.argv[1])
+	if "--file" in sys.argv:
+		idx = sys.argv.index("--file")+1
+		if idx < len(sys.argv):
+			suite = __import__(sys.argv[idx])
+		else:
+			success = False
 	else:
-		print "Unable to load a benchmark description file!"
-		print_usage
+		success = False
+
+	if (not success):
+		print "Unable to load an execution configuration file!"
+		print_usage()
 		exit(1)
 
 	results = run(suite)
-	if ("--print" in sys.argv):
+	if "--print" in sys.argv:
 		print_results(results)
-	if ("--save" in sys.argv):
-		save_results("output.json", results)
+	if "--save" in sys.argv:
+		idx = sys.argv.index("--save")+1
+		if idx < len(sys.argv):
+			save_results(sys.argv[idx], results)
+		else:
+			print "Missing a filename to save JSON to!"
+			print_usage()
+			exit(1)

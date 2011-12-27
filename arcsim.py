@@ -1,14 +1,13 @@
 import re
 
-import marky
 import aggregate
-
-benchmarks = str.split("""
-a2time01-default-iter
-""")
 
 programs = str.split("""
 /Users/sck/Code/arcsim-trunk/bin/arcsim
+""")
+
+benchmarks = str.split("""
+a2time01-default-iter
 """)
 
 argument_variables = { \

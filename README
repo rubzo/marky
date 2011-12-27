@@ -1,0 +1,10 @@
+marky
+=====
+
+use ./marky.py --file <execution configuration file> to run.
+--save <file> to save to JSON
+--print to print output.
+
+Requirements of an execution configuration file:
+
+< to be written once decided, obviously! >
