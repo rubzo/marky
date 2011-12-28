@@ -11,13 +11,13 @@ a2time01-default-iter
 """)
 
 argument_variables = { \
-"--fast-num-threads=": range(1,4), \
+"--fast-num-threads=": range(1,2), \
 }
 
 core_arguments = "--fast --verbose"
 benchmark_argument = "-e"
 
-iterations = 3
+iterations = 1
 
 time_filter = re.compile("Simulation time = ([^ ]+) \[Seconds\]")
 mips_filter = re.compile("Simulation rate = ([^ ]+) \[MIPS\]")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import os, subprocess, re, sys, pprint, json
+import os, subprocess, re, sys, string, pprint, json, argparse
 
-import aggregate
+import aggregate, mailer
 
 # Function used to capture all output from a program it executes.
 # Executes the whole program before returning any output.
@@ -100,6 +100,7 @@ def dump_json(filename, results):
 	f = open(filename, "w")
 	json.dump(results, f)
 	f.close()
+	print "SAVE: Saved JSON to " + filename + "."
 
 # Functions that should be exposed to main are below:
 
@@ -163,60 +164,41 @@ def run_experiment(program, experiment_arguments = ""):
 
 # Used by the main function below, change which function implements the service here.
 # Prints the results!
-def print_results(results):
-	simple_print(results)
-
-# Used by the main function below, change which function implements the service here.
+print_results = simple_print
 # Saves the results!
-def save_results(filename, results):
-	dump_json(filename, results)
+save_results = dump_json
+# Email the results!
+email_results = mailer.send_email
 
-# Prints usage!
-def print_usage():
-	print "usage: marky.py --file <description file> [--save <file>] [--print]"
+# Saves the results!
 
-# Prints help!
-def print_help():
-	print "marky - a benchmark execution and statistics gathering framework"
-	print_usage()
-	print
-	print " --file <description file> - a file containing an execution configuration"
-	print " --save <file>             - output the results into a JSON file"
-	print " --print                   - \"pretty-print\" the results"
-	
 #
 # MAIN FUNCTION
 #
 if __name__ == "__main__":
 
-	if ('-h' in sys.argv or '--help' in sys.argv):
-		print_help()
-		exit(0)
+	parser = argparse.ArgumentParser(
+			description = "marky - a benchmark execution and statistics gathering framework")
+	parser.add_argument('file', type=str, nargs=1, metavar='FILE', 
+			help='A file containing an execution configuration. (Minus the .py)')
+	parser.add_argument('--save', '-s', dest='should_save', nargs=1, metavar='FILE', 
+			help='Output the results into a JSON file.')
+	parser.add_argument('--print', '-p', dest='should_print', action='store_true', 
+			help='"Pretty-print" the results.')
+	parser.add_argument('--email', '-e', dest='should_email', nargs=1, metavar='ADDRESS', 
+			help='Send an email to the address once complete.')
+	args = parser.parse_args()
 
-	success = True
 	suite = 0
-	if "--file" in sys.argv:
-		idx = sys.argv.index("--file")+1
-		if idx < len(sys.argv):
-			suite = __import__(sys.argv[idx])
-		else:
-			success = False
-	else:
-		success = False
-
-	if (not success):
-		print "Unable to load an execution configuration file!"
-		print_usage()
-		exit(1)
+	if args.file:
+		ecf = args.file[0]
+		ecf = string.replace(ecf, ".py", "")
+		suite = __import__(ecf)
 
 	results = run(suite)
-	if "--print" in sys.argv:
+	if args.should_print:
 		print_results(results)
-	if "--save" in sys.argv:
-		idx = sys.argv.index("--save")+1
-		if idx < len(sys.argv):
-			save_results(sys.argv[idx], results)
-		else:
-			print "Missing a filename to save JSON to!"
-			print_usage()
-			exit(1)
+	if args.should_save:
+		save_results(args.should_save[0], results)
+	if args.should_email:
+		email_results(args.should_email[0], results)
