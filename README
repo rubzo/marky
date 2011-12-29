@@ -11,15 +11,20 @@ To be decided, currently pretty amorphous!
 TODO:
 =====
 
-- benchmarks in different dirs
 - benchmarks that vary by changing config files
-- speedup calculations
+- support for reading benchmark arguments from a script in the benchmark's directory
+- speedup calculations (proper ones)
 - support for different outputs (csv, R's shitty input format/gnuplot (nlsv, basically))
 - extra statistics (stdev, standard error, confidence intervals)
 - graph output
-- experiment aliases
-- benchmark grouping?
+- checking that the description file has the required fields
+- support for disabling aggregate calculation
+- support for loading json files for aggregation, presentation, etc
+- support for looking after description files
 
 - experiment aggregation DONE
-- saving of raw outputs DONE-albeit horrifically, needs experiment aliases/grouping to look nice
+- saving of raw outputs DONE
 - debug logging DONE
+- benchmark grouping DONE
+- benchmarks in different dirs DONE
+- experiment aliases

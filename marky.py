@@ -130,10 +130,10 @@ def save_raw_output(invocation, iteration, raw):
 def perform_experiment_aggregation(suite, experiment_table):
 	experiment_table["aggregates"] = {}
 		
-	# program_aggregates contains a list of names of benchmark aggregates
+	# experiment_aggregates contains a list of names of benchmark aggregates
 	# We wish to take the aggregate run with this name from each benchmark in the experiment
 	# and combine those into one aggregate run!
-	for aggregate_name in suite.program_aggregates:
+	for aggregate_name in suite.experiment_aggregates:
 		# Where we store each benchmark's aggregate runs as a run...
 		run_table = []
 
@@ -160,32 +160,44 @@ def run(suite):
 	total_result_table = {}
 
 	# Go through the programs...
-	for program in suite.programs:
+	for (program_alias, program) in suite.programs.items():
 
 		# Check if there's argument variables that will require iterating over
 		if (len(suite.argument_variables) == 0):
 			# There were none, so simply run this program with no extra arguments
-			total_result_table[program] = run_experiment(suite, program)
+			total_result_table[program_alias] = run_experiment(suite, program, program_alias)
 			# Perform aggregation
-			perform_experiment_aggregation(suite, total_result_table[program])
+			perform_experiment_aggregation(suite, total_result_table[program_alias])
 		else:
 			# There are some, so use get_experiment_arguments to get a list of all combinations, iterate over them.	
 			for experiment_arguments in get_experiment_arguments(suite.argument_variables):
-				total_result_table[program + " " + experiment_arguments] = run_experiment(suite, program, experiment_arguments)
+				total_result_table[program_alias + " " + experiment_arguments] = run_experiment(suite, program, program_alias, experiment_arguments)
 				# Perform aggregation
-				perform_experiment_aggregation(suite, total_result_table[program + " " + experiment_arguments])
+				perform_experiment_aggregation(suite, total_result_table[program_alias + " " + experiment_arguments])
 
 
 	return total_result_table
 
 # An "experiment" is categorised as any program + the arguments we wish to use for that program.
-def run_experiment(suite, program, experiment_arguments = ""): 
+def run_experiment(suite, program, program_alias, experiment_arguments = ""): 
 
 	experiment_table = {}
 	experiment_table["benchmarks"] = {}
 
+	# Convert the dict of benchmark groups, to a list of benchmark tuples called actual_benchmarks
+	# We will then iterate over that.
+	actual_benchmarks = []
+	for (group_name, group_benchmarks) in suite.benchmarks.items():
+		for (name, directory, executescript) in group_benchmarks:
+			actual_benchmarks.append((group_name, name, directory, executescript))
+
 	# Go through the benchmarks...
-	for benchmark in suite.benchmarks:
+	for (group_name, benchmark, directory, executescript) in actual_benchmarks:
+
+		benchmark_name = group_name + " ++ " + benchmark
+
+		enter_directory(directory)
+		debug_msg(3, "Entered into " + os.getcwd())
 
 		# We store all the runs in here.
 		run_table = []
@@ -200,7 +212,7 @@ def run_experiment(suite, program, experiment_arguments = ""):
 			# Construct the command used to execute the benchmark
 			invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
 
-			debug_msg(1,"RUN: '" + invocation + "' (ITER: " + str(i+1) + "/" + str(suite.iterations) + ")")
+			debug_msg(1, "RUN: '" + invocation + "' (ITER: " + str(i+1) + "/" + str(suite.iterations) + ")")
 
 			# string containing the raw output from the benchmark
 			raw = ""
@@ -209,7 +221,7 @@ def run_experiment(suite, program, experiment_arguments = ""):
 				raw = execute_and_capture_output(invocation)
 
 				# Save the output, if required
-				save_raw_output(invocation, i, raw)
+				save_raw_output(program_alias + experiment_arguments, i, raw)
 
 				# Now collect the fields using our provided filters.
 				for (field, field_filter) in suite.filters.items():
@@ -238,8 +250,11 @@ def run_experiment(suite, program, experiment_arguments = ""):
 			for (field, (a, key_field)) in suite.benchmark_aggregates.items():
 				benchmark_result["aggregates"][field] = aggregate.aggregate(a, run_table, key_field)
 
+		leave_directory()
+		debug_msg(3, "Exited back to " + os.getcwd())
+
 		# Save this benchmark in the benchmark table
-		experiment_table["benchmarks"][benchmark] = benchmark_result
+		experiment_table["benchmarks"][benchmark_name] = benchmark_result
 	
 	return experiment_table
 
@@ -284,10 +299,12 @@ def main():
 		ecd = string.replace(ecd, ".py", "")
 		suite = __import__(ecd)
 
+	config["original_dir"] = os.getcwd()
+
 	config["saveraw"] = False
 	if args.should_saveraw:
 		config["saveraw"] = True
-		config["saveraw_dir"] = args.should_saveraw[0]
+		config["saveraw_dir"] = config["original_dir"] + "/" + args.should_saveraw[0]
 
 	config["debuglevel"] = 1
 	if args.debuglevel:
@@ -295,17 +312,18 @@ def main():
 	if args.quiet:
 		config["debuglevel"] = 0
 
+	os.chdir(suite.benchmark_root)
+
 	results = run(suite)
 
-	# Print-related
+	os.chdir(config["original_dir"])
+
 	if args.should_print:
 		print_results(results)
 
-	# Saving-related
 	if args.should_save:
 		save_results(args.should_save[0], results)
 
-	# Email-related
 	if args.should_email:
 		mailserver = 'localhost'
 		if args.mailserver:
