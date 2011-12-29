@@ -14,12 +14,12 @@ TODO:
 - benchmarks in different dirs
 - benchmarks that vary by changing config files
 - speedup calculations
-- support for different outputs (csv, R's shitty input format/gnuplot (nsv, basically))
+- support for different outputs (csv, R's shitty input format/gnuplot (nlsv, basically))
 - extra statistics (stdev, standard error, confidence intervals)
 - graph output
 - experiment aliases
 - benchmark grouping?
-- debug logging
 
 - experiment aggregation DONE
 - saving of raw outputs DONE-albeit horrifically, needs experiment aliases/grouping to look nice
+- debug logging DONE

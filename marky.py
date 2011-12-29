@@ -4,6 +4,7 @@ import os, subprocess, re, sys, string, pprint, json, argparse
 
 import aggregate, mailer
 from config import config
+from debug import debug_msg
 
 # Function used to capture all output from a program it executes.
 # Executes the whole program before returning any output.
@@ -104,21 +105,25 @@ def dump_json(filename, results):
 	f = open(filename, "w")
 	json.dump(results, f)
 	f.close()
-	print "SAVE: Saved JSON to " + filename + "."
+	debug_msg(3, "Saved JSON to " + filename + ".")
 
 def save_raw_output(invocation, iteration, raw):
 	if config["saveraw"]:
 
 		directory = config["saveraw_dir"]
 		if not os.path.exists(directory):
+			debug_msg(3, "Raw output directory doesn't exist! Creating...")
 			os.mkdir(directory)
 
 		filename = string.replace(invocation, " ", "") 
 		filename = string.replace(filename, "/", "") 
 		filename += "-i" + str(iteration+1)
-		f = open(directory + "/" + filename, "w")
+		save_location = directory + "/" + filename
+		f = open(save_location, "w")
 		f.write(raw)
 		f.close()
+
+		debug_msg(3, "Saved raw output to " + save_location)
 	
 
 # This is called by run() every time it finishes running a given experiment.
@@ -195,7 +200,7 @@ def run_experiment(suite, program, experiment_arguments = ""):
 			# Construct the command used to execute the benchmark
 			invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
 
-			print "RUN: '" + invocation + "' (ITER: " + str(i+1) + "/" + str(suite.iterations) + ")"
+			debug_msg(1,"RUN: '" + invocation + "' (ITER: " + str(i+1) + "/" + str(suite.iterations) + ")")
 
 			# string containing the raw output from the benchmark
 			raw = ""
@@ -266,6 +271,10 @@ def main():
 			help='Use the provided host as a mailserver.')
 	parser.add_argument('--save-raw', '-r', dest='should_saveraw', nargs=1, metavar='DIR', 
 			help='Save the raw output from each run into the given directory.')
+	parser.add_argument('--debug', '-d', dest='debuglevel', nargs=1, type=int, metavar='LEVEL', 
+			help='Set debug info level. 1 = Announce each benchmark invocation. 2 = Include time taken. 3 = Everything else. (Default = 1) (Set to 0 for quiet, or use --quiet.)')
+	parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', 
+			help='Hide all output (apart from errors.)')
 	args = parser.parse_args()
 
 	suite = 0
@@ -279,6 +288,12 @@ def main():
 	if args.should_saveraw:
 		config["saveraw"] = True
 		config["saveraw_dir"] = args.should_saveraw[0]
+
+	config["debuglevel"] = 1
+	if args.debuglevel:
+		config["debuglevel"] = args.debuglevel[0]
+	if args.quiet:
+		config["debuglevel"] = 0
 
 	results = run(suite)
 
