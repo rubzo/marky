@@ -105,19 +105,54 @@ def dump_json(filename, results):
 	f.close()
 	print "SAVE: Saved JSON to " + filename + "."
 
+def perform_experiment_aggregation(suite, experiment_table):
+	experiment_table["aggregates"] = {}
+		
+	# program_aggregates contains a list of names of benchmark aggregates
+	# We wish to take the aggregate run with this name from each benchmark in the experiment
+	# and combine those into one aggregate run!
+	for aggregate_name in suite.program_aggregates:
+		# Where we store each benchmark's aggregate runs as a run...
+		run_table = []
+
+		# Get the right aggregate function and key field with this name
+		(aggregate_fun, key_field) = suite.benchmark_aggregates[aggregate_name]
+
+		# Go through the benchmarks executed in this experiment... 
+		for (name, benchmark) in experiment_table["benchmarks"].items():
+			# Populating the run_table
+			run_table.append(benchmark["aggregates"][aggregate_name])
+
+		# Now present the run table to aggregate.aggregate, which simply treats it as it would if it were 
+		# aggregating a list of runs for a single benchmark!
+		experiment_table["aggregates"][aggregate_name] = aggregate.aggregate(aggregate_fun, run_table, key_field)
+
+# -----
 # Functions that should be exposed to main are below:
+# -----
 
 # This function is actually used to execute the experiments.
 # It returns a currently-amorphous table of information about the experiments.
 def run(suite):
+	# The amorphous monstrosity of a table
 	total_result_table = {}
+
+	# Go through the programs...
 	for program in suite.programs:
 
+		# Check if there's argument variables that will require iterating over
 		if (len(suite.argument_variables) == 0):
-			total_result_table[(program, None)] = run_experiment(suite, program)
+			# There were none, so simply run this program with no extra arguments
+			total_result_table[program] = run_experiment(suite, program)
+			# Perform aggregation
+			perform_experiment_aggregation(suite, total_result_table[program])
 		else:
+			# There are some, so use get_experiment_arguments to get a list of all combinations, iterate over them.	
 			for experiment_arguments in get_experiment_arguments(suite.argument_variables):
 				total_result_table[program + " " + experiment_arguments] = run_experiment(suite, program, experiment_arguments)
+				# Perform aggregation
+				perform_experiment_aggregation(suite, total_result_table[program + " " + experiment_arguments])
+
 
 	return total_result_table
 
@@ -174,8 +209,8 @@ def run_experiment(suite, program, experiment_arguments = ""):
 		if len(run_table) > 0:
 			benchmark_result["runs"] = run_table
 			benchmark_result["aggregates"] = {}
-			for (field, (a, key_field)) in suite.aggregates.items():
-				benchmark_result["aggregates"][field] = aggregate.aggregate_for_benchmark(a, run_table, key_field)
+			for (field, (a, key_field)) in suite.benchmark_aggregates.items():
+				benchmark_result["aggregates"][field] = aggregate.aggregate(a, run_table, key_field)
 
 		# Save this benchmark in the benchmark table
 		experiment_table["benchmarks"][benchmark] = benchmark_result
@@ -204,8 +239,7 @@ def main():
 			help='"Pretty-print" the results.')
 	parser.add_argument('--email', '-m', dest='should_email', nargs=1, metavar='ADDRESS', 
 			help='Send an email to the address once complete. (Uses localhost unless --mailserver is given.)')
-	# TODO: Learn how to actually make this a binary choice!
-	parser.add_argument('--email-format', '-mf', dest='emailfmt', nargs=1, metavar='(pprint|json)', 
+	parser.add_argument('--email-format', '-mf', dest='emailfmt', nargs=1, choices=["pprint","json"], 
 			help='Choose between pprint and json for the format of the data sent in the email.')
 	parser.add_argument('--mailserver', '-ms', dest='mailserver', nargs=1, metavar='HOST', 
 			help='Use the provided host as a mailserver.')

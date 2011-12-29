@@ -12,10 +12,10 @@ def maximum(values):
 def minimum(values):
 	return min(values)
 
-# Run the aggregate function 'fun' over all runs in 'run_table'.
+# Run the aggregate function 'fun' over all rGuns in 'run_table'.
 # If 'key_field' is provided, the corresponding field in the runs is
 # used as the "key" of the result.
-def aggregate_for_benchmark(fun, run_table, key_field = None):
+def aggregate(fun, run_table, key_field = None):
 	aggregate_run = {}
 	
 	# *** We don't want to simply aggregate all the fields.

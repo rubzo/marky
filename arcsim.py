@@ -1,5 +1,4 @@
 import re
-
 import aggregate
 
 programs = str.split("""
@@ -9,10 +8,11 @@ programs = str.split("""
 benchmarks = str.split("""
 a2time01-default-iter
 aifftr01-default-iter
+aifirf01-default-iter
 """)
 
 argument_variables = { \
-"--fast-num-threads=": range(1,3), \
+"--fast-num-threads=": [10,100], \
 }
 
 core_arguments = "--fast --verbose"
@@ -34,9 +34,11 @@ filters = { \
 "total instructions": total_inst_filter, \
 }
 
-aggregates = { \
+benchmark_aggregates = { \
 "arithmetric mean": (aggregate.arithmetric_mean, None), \
 "geometric mean": (aggregate.geometric_mean, None), \
 "maximum mips": (aggregate.maximum, "mips"), \
 "minimum time": (aggregate.minimum, "time"), \
 }
+
+program_aggregates = ["arithmetric mean"]

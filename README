@@ -2,7 +2,7 @@ marky
 =====
 
 usage: marky.py [-h] [--save FILE] [--print] [--email ADDRESS]
-                [--mailserver HOST]
+                [--email-format {pprint,json}] [--mailserver HOST]
                 FILE
 
 marky - a benchmark execution and statistics gathering framework
@@ -15,10 +15,13 @@ optional arguments:
   -h, --help            show this help message and exit
   --save FILE, -s FILE  Output the results into a JSON file.
   --print, -p           "Pretty-print" the results.
-  --email ADDRESS, -e ADDRESS
+  --email ADDRESS, -m ADDRESS
                         Send an email to the address once complete. (Uses
                         localhost unless --mailserver is given.)
-  --mailserver HOST, -mx HOST
+  --email-format {pprint,json}, -mf {pprint,json}
+                        Choose between pprint and json for the format of the
+                        data sent in the email.
+  --mailserver HOST, -ms HOST
                         Use the provided host as a mailserver.
 
 Execution Configuration Description
@@ -29,7 +32,7 @@ To be decided, currently pretty amorphous!
 TODO:
 =====
 
-- experiment aggregation
+- experiment aggregation DONE
 - benchmarks in different dirs
 - benchmarks that vary by changing config files
 - speedup calculations
