@@ -8,16 +8,17 @@ programs = str.split("""
 
 benchmarks = str.split("""
 a2time01-default-iter
+aifftr01-default-iter
 """)
 
 argument_variables = { \
-"--fast-num-threads=": range(1,2), \
+"--fast-num-threads=": range(1,3), \
 }
 
 core_arguments = "--fast --verbose"
 benchmark_argument = "-e"
 
-iterations = 1
+iterations = 2
 
 time_filter = re.compile("Simulation time = ([^ ]+) \[Seconds\]")
 mips_filter = re.compile("Simulation rate = ([^ ]+) \[MIPS\]")

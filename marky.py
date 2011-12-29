@@ -48,11 +48,14 @@ def run_multi_filter(raw, filter_function):
 def convert_data(s):
 	n = s
 	try:
-		n = float(s)
+		n = int(s)
+		# s must've been an int!
 	except ValueError:
 		try:
-			n = int(s)
+			n = float(s)
+			# s must've been a float!
 		except ValueError:
+			# s isn't a float or an int, assume it's a string.
 			n = s
 	return n
 
@@ -111,54 +114,71 @@ def run(suite):
 	for program in suite.programs:
 
 		if (len(suite.argument_variables) == 0):
-			total_result_table[(program, None)] = run_experiment(program)
+			total_result_table[(program, None)] = run_experiment(suite, program)
 		else:
 			for experiment_arguments in get_experiment_arguments(suite.argument_variables):
-				total_result_table[program + " " + experiment_arguments] = run_experiment(program, experiment_arguments)
+				total_result_table[program + " " + experiment_arguments] = run_experiment(suite, program, experiment_arguments)
 
 	return total_result_table
 
-def run_experiment(program, experiment_arguments = ""): 
+# An "experiment" is categorised as any program + the arguments we wish to use for that program.
+def run_experiment(suite, program, experiment_arguments = ""): 
 
 	experiment_table = {}
+	experiment_table["benchmarks"] = {}
 
+	# Go through the benchmarks...
 	for benchmark in suite.benchmarks:
 
+		# We store all the runs in here.
 		run_table = []
 		failed_iterations = 0
 
+		# Go through the iterations...
 		for i in range(suite.iterations):
 
+			# This stores the fields collected for this run.
 			run = {}
 
+			# Construct the command used to execute the benchmark
 			invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
 
 			print "RUN: '" + invocation + "' (ITER: " + str(i+1) + "/" + str(suite.iterations) + ")"
 
+			# string containing the raw output from the benchmark
 			raw = ""
 			try:
+				# Actually execute the benchmark
 				raw = execute_and_capture_output(invocation)
+				# Now collect the fields using our provided filters.
 				for (field, field_filter) in suite.filters.items():
 					run[field] = run_filter(raw, field_filter)
 
+				# Collected data is all strings currently; convert to the correct types.
 				run = cleanup_run(run)
 
+				# Save this run
 				run_table.append(run)
+
 			except Exception:
+				# Something bad happened when running the benchmark, just ignore it and keep going.	
 				failed_iterations += 1
 
+		# Finished running this benchmark for X iterations...
 		benchmark_result = {}
 		benchmark_result["successes"] = len(run_table)
 		benchmark_result["failures"] = failed_iterations
 		benchmark_result["attempts"] = len(run_table) + failed_iterations
 
+		# Perform aggregation
 		if len(run_table) > 0:
 			benchmark_result["runs"] = run_table
 			benchmark_result["aggregates"] = {}
 			for (field, (a, key_field)) in suite.aggregates.items():
-				benchmark_result["aggregates"][field] = aggregate.aggregate(a, run_table, key_field)
+				benchmark_result["aggregates"][field] = aggregate.aggregate_for_benchmark(a, run_table, key_field)
 
-		experiment_table[benchmark] = benchmark_result
+		# Save this benchmark in the benchmark table
+		experiment_table["benchmarks"][benchmark] = benchmark_result
 	
 	return experiment_table
 
@@ -170,13 +190,10 @@ save_results = dump_json
 # Email the results!
 email_results = mailer.send_email
 
-# Saves the results!
-
 #
 # MAIN FUNCTION
 #
-if __name__ == "__main__":
-
+def main():
 	parser = argparse.ArgumentParser(
 			description = "marky - a benchmark execution and statistics gathering framework")
 	parser.add_argument('file', type=str, nargs=1, metavar='FILE', 
@@ -185,20 +202,42 @@ if __name__ == "__main__":
 			help='Output the results into a JSON file.')
 	parser.add_argument('--print', '-p', dest='should_print', action='store_true', 
 			help='"Pretty-print" the results.')
-	parser.add_argument('--email', '-e', dest='should_email', nargs=1, metavar='ADDRESS', 
-			help='Send an email to the address once complete.')
+	parser.add_argument('--email', '-m', dest='should_email', nargs=1, metavar='ADDRESS', 
+			help='Send an email to the address once complete. (Uses localhost unless --mailserver is given.)')
+	# TODO: Learn how to actually make this a binary choice!
+	parser.add_argument('--email-format', '-mf', dest='emailfmt', nargs=1, metavar='(pprint|json)', 
+			help='Choose between pprint and json for the format of the data sent in the email.')
+	parser.add_argument('--mailserver', '-ms', dest='mailserver', nargs=1, metavar='HOST', 
+			help='Use the provided host as a mailserver.')
 	args = parser.parse_args()
 
 	suite = 0
 	if args.file:
-		ecf = args.file[0]
-		ecf = string.replace(ecf, ".py", "")
-		suite = __import__(ecf)
+		# (ecd = Execution Configuration Description)
+		ecd = args.file[0]
+		ecd = string.replace(ecd, ".py", "")
+		suite = __import__(ecd)
 
 	results = run(suite)
+
+	# Print-related
 	if args.should_print:
 		print_results(results)
+
+	# Saving-related
 	if args.should_save:
 		save_results(args.should_save[0], results)
+
+	# Email-related
 	if args.should_email:
-		email_results(args.should_email[0], results)
+		mailserver = 'localhost'
+		if args.mailserver:
+			mailserver = args.mailserver[0]
+		formatter = pprint.pprint
+		if args.emailfmt[0] == 'json':
+			formatter = json.dumps
+
+		email_results(args.should_email[0], results, mailserver=mailserver, formatter=formatter)
+
+if __name__ == "__main__":
+	main()

@@ -1,10 +1,42 @@
 marky
 =====
 
-use ./marky.py --file <execution configuration file> to run.
---save <file> to save to JSON
---print to print output.
+usage: marky.py [-h] [--save FILE] [--print] [--email ADDRESS]
+                [--mailserver HOST]
+                FILE
 
-Requirements of an execution configuration file:
+marky - a benchmark execution and statistics gathering framework
 
-< to be written once decided, obviously! >
+positional arguments:
+  FILE                  A file containing an execution configuration. (Minus
+                        the .py)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --save FILE, -s FILE  Output the results into a JSON file.
+  --print, -p           "Pretty-print" the results.
+  --email ADDRESS, -e ADDRESS
+                        Send an email to the address once complete. (Uses
+                        localhost unless --mailserver is given.)
+  --mailserver HOST, -mx HOST
+                        Use the provided host as a mailserver.
+
+Execution Configuration Description
+===================================
+
+To be decided, currently pretty amorphous!
+
+TODO:
+=====
+
+- experiment aggregation
+- benchmarks in different dirs
+- benchmarks that vary by changing config files
+- speedup calculations
+- support for different outputs (csv, R's shitty input format/gnuplot (nsv, basically))
+- extra statistics (stdev, standard error, confidence intervals)
+- graph output
+- experiment aliases
+- benchmark grouping?
+- logging
+- saving of raw outputs
