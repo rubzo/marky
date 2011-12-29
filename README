@@ -1,28 +1,7 @@
 marky
 =====
 
-usage: marky.py [-h] [--save FILE] [--print] [--email ADDRESS]
-                [--email-format {pprint,json}] [--mailserver HOST]
-                FILE
-
-marky - a benchmark execution and statistics gathering framework
-
-positional arguments:
-  FILE                  A file containing an execution configuration. (Minus
-                        the .py)
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --save FILE, -s FILE  Output the results into a JSON file.
-  --print, -p           "Pretty-print" the results.
-  --email ADDRESS, -m ADDRESS
-                        Send an email to the address once complete. (Uses
-                        localhost unless --mailserver is given.)
-  --email-format {pprint,json}, -mf {pprint,json}
-                        Choose between pprint and json for the format of the
-                        data sent in the email.
-  --mailserver HOST, -ms HOST
-                        Use the provided host as a mailserver.
+Run marky.py -h to get help.
 
 Execution Configuration Description
 ===================================
@@ -32,7 +11,6 @@ To be decided, currently pretty amorphous!
 TODO:
 =====
 
-- experiment aggregation DONE
 - benchmarks in different dirs
 - benchmarks that vary by changing config files
 - speedup calculations
@@ -41,5 +19,7 @@ TODO:
 - graph output
 - experiment aliases
 - benchmark grouping?
-- logging
-- saving of raw outputs
+- debug logging
+
+- experiment aggregation DONE
+- saving of raw outputs DONE-albeit horrifically, needs experiment aliases/grouping to look nice

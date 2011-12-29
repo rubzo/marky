@@ -3,6 +3,7 @@
 import os, subprocess, re, sys, string, pprint, json, argparse
 
 import aggregate, mailer
+from config import config
 
 # Function used to capture all output from a program it executes.
 # Executes the whole program before returning any output.
@@ -105,6 +106,22 @@ def dump_json(filename, results):
 	f.close()
 	print "SAVE: Saved JSON to " + filename + "."
 
+def save_raw_output(invocation, iteration, raw):
+	if config["saveraw"]:
+
+		directory = config["saveraw_dir"]
+		if not os.path.exists(directory):
+			os.mkdir(directory)
+
+		filename = string.replace(invocation, " ", "") 
+		filename = string.replace(filename, "/", "") 
+		filename += "-i" + str(iteration+1)
+		f = open(directory + "/" + filename, "w")
+		f.write(raw)
+		f.close()
+	
+
+# This is called by run() every time it finishes running a given experiment.
 def perform_experiment_aggregation(suite, experiment_table):
 	experiment_table["aggregates"] = {}
 		
@@ -185,6 +202,10 @@ def run_experiment(suite, program, experiment_arguments = ""):
 			try:
 				# Actually execute the benchmark
 				raw = execute_and_capture_output(invocation)
+
+				# Save the output, if required
+				save_raw_output(invocation, i, raw)
+
 				# Now collect the fields using our provided filters.
 				for (field, field_filter) in suite.filters.items():
 					run[field] = run_filter(raw, field_filter)
@@ -243,6 +264,8 @@ def main():
 			help='Choose between pprint and json for the format of the data sent in the email.')
 	parser.add_argument('--mailserver', '-ms', dest='mailserver', nargs=1, metavar='HOST', 
 			help='Use the provided host as a mailserver.')
+	parser.add_argument('--save-raw', '-r', dest='should_saveraw', nargs=1, metavar='DIR', 
+			help='Save the raw output from each run into the given directory.')
 	args = parser.parse_args()
 
 	suite = 0
@@ -251,6 +274,11 @@ def main():
 		ecd = args.file[0]
 		ecd = string.replace(ecd, ".py", "")
 		suite = __import__(ecd)
+
+	config["saveraw"] = False
+	if args.should_saveraw:
+		config["saveraw"] = True
+		config["saveraw_dir"] = args.should_saveraw[0]
 
 	results = run(suite)
 
