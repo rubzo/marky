@@ -11,4 +11,5 @@ def warning_msg(msg):
 
 def error_msg(msg):
 	print "[ERROR] " + msg
+	print "Quitting..."
 	exit(1)

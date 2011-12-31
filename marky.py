@@ -209,6 +209,15 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 		enter_directory(directory)
 		debug_msg(3, "Entered into " + os.getcwd())
 
+		if config["should_warmup"]:
+			invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
+
+			debug_msg(1, "RUN: '" + invocation + "' (WARMUP)")
+			try:
+				execute_and_capture_output(invocation)
+			except Exception:
+				error_msg("Warmup run failed!")
+
 		# We store all the runs in here.
 		run_table = []
 		failed_iterations = 0
@@ -298,6 +307,8 @@ def main():
 			help='A file containing an execution configuration. (Minus the .py)')
 	parser.add_argument('--disable-aggregation', '-a', dest='disable_agg', action='store_true', 
 			help='Turn off aggregation calculation for this session.')
+	parser.add_argument('--warmup', '-w', dest='should_warmup', action='store_true', 
+			help='Perform a warmup run of each benchmark that is not recorded.')
 	parser.add_argument('--print', '-p', dest='should_print', action='store_true', 
 			help='"Pretty-print" the results.')
 	parser.add_argument('--print-format', '-pf', dest='printfmt', nargs=1, choices=formats, 
@@ -343,6 +354,10 @@ def main():
 	config["should_aggregate"] = True
 	if args.disable_agg:
 		config["should_aggregate"] = False
+
+	config["should_warmup"] = False
+	if args.should_warmup:
+		config["should_warmup"] = True
 
 	os.chdir(suite.benchmark_root)
 
