@@ -14,17 +14,25 @@ TODO:
 - benchmarks that vary by changing config files
 - support for reading benchmark arguments from a script in the benchmark's directory
 - speedup calculations (proper ones)
-- support for different outputs (csv, R's shitty input format/gnuplot (nlsv, basically))
+- support for other outputs (R's shitty input format/gnuplot (nlsv, basically))
+- unifying how filters work (should be a function that takes a list of values, returns aggregate), makes
+  it more plug and play
 - extra statistics (stdev, standard error, confidence intervals)
 - graph output
-- checking that the description file has the required fields
+- checking that the description file has the required variables
 - support for disabling aggregate calculation
 - support for loading json files for aggregation, presentation, etc
-- support for looking after description files
+- support for organising description files
+- support for simply running programs without a given benchmark to execute
+- support for timing of benchmarks, with no filtering of benchmark output
+- support for a dummy run before each benchmark's proper runs
+- support for verifying experiment correctness
+- support for compiling benchmarks
 
 - experiment aggregation DONE
 - saving of raw outputs DONE
 - debug logging DONE
 - benchmark grouping DONE
 - benchmarks in different dirs DONE
-- experiment aliases
+- experiment aliases DONE
+- support for different outputs - csv DONE

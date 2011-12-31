@@ -6,19 +6,20 @@ programs = { \
 "arcsim": "/Users/sck/Code/arcsim-trunk/bin/arcsim", \
 }
 
-### BENCHMARKS
+### BENCHMARK ROOT DIRECTORY
 benchmark_root = "/Users/sck/Code/arcsim-trunk/tests/regression/tests"
 
+### DEFINE BENCHMARK GROUPS HERE
 eembc_default_benchmarks = [ \
 ("a2time01-default-iter", "eembc/default-iterations", None), \
-("aifftr01-default-ite", "eembc/default-iterations", None), \
+("aifftr01-default-iter", "eembc/default-iterations", None), \
 ]
-
 eembc_large_benchmarks = [ \
 ("a2time01-120000-iter", "eembc/large-iterations", None), \
-("aifftr01-2000-ite", "eembc/large-iterations", None), \
+("aifftr01-2000-iter", "eembc/large-iterations", None), \
 ]
 
+# REGISTER BENCHMARK GROUPS HERE
 benchmarks = { \
 "eembc default": eembc_default_benchmarks, \
 "eembc large": eembc_large_benchmarks, \

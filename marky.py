@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, subprocess, re, sys, string, pprint, json, argparse
+import os, subprocess, re, sys, string, json, argparse
 
 import aggregate, mailer
 from config import config
@@ -96,17 +96,6 @@ def get_experiment_arguments(arg_vars):
 	exp_args = build_experiment_arguments(exp_args, arg_vars_copy)
 	return exp_args
 
-# Just use the simple pprint pretty printer.
-def simple_print(results):
-	pprint.pprint(results)
-
-# Store data to disk with JSON.
-def dump_json(filename, results):
-	f = open(filename, "w")
-	json.dump(results, f)
-	f.close()
-	debug_msg(3, "Saved JSON to " + filename + ".")
-
 def save_raw_output(invocation, iteration, raw):
 	if config["saveraw"]:
 
@@ -125,6 +114,26 @@ def save_raw_output(invocation, iteration, raw):
 
 		debug_msg(3, "Saved raw output to " + save_location)
 	
+def convert_to_csv(results):
+	s = '"experiment_name","benchmark","i",\n'
+	for (exp_name, exp) in results.items():
+		for (bm_name, bm) in exp["benchmarks"].items():
+			run_counter = 1
+			for run in bm["runs"]:
+				s += '"' + exp_name + '","' + bm_name + '",' + str(run_counter) + ',' 
+				s += ','.join(map(lambda v: str(v), run.values()))
+				s += "\n"
+				run_counter += 1
+			if "aggregates" in bm:
+				for (agg_name, agg) in bm["aggregates"].items():
+					s += '"' + exp_name + '","' + bm_name + '","**' + agg_name + '**",' 
+					s += ','.join(map(lambda v: str(v), agg.values()))
+					s += "\n"
+
+	return s
+
+def convert_to_widecsv(results):
+	pass
 
 # This is called by run() every time it finishes running a given experiment.
 def perform_experiment_aggregation(suite, experiment_table):
@@ -258,13 +267,22 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 	
 	return experiment_table
 
-# Used by the main function below, change which function implements the service here.
-# Prints the results!
-print_results = simple_print
-# Saves the results!
-save_results = dump_json
+def print_results(results, formatter=json.dumps):
+	print formatter(results)
+
+def save_results(filename, results, formatter=json.dumps):
+	f = open(filename, "w")
+	f.write(formatter(results))
+	f.close()
+
 # Email the results!
 email_results = mailer.send_email
+
+formats = ["csv", "json", "widecsv"]
+formatters = {"csv": convert_to_csv, "json": json.dumps, "widecsv": convert_to_widecsv}
+default_print_format = "json"
+default_save_format = "json"
+default_email_format = "json"
 
 #
 # MAIN FUNCTION
@@ -272,16 +290,21 @@ email_results = mailer.send_email
 def main():
 	parser = argparse.ArgumentParser(
 			description = "marky - a benchmark execution and statistics gathering framework")
+
 	parser.add_argument('file', type=str, nargs=1, metavar='FILE', 
 			help='A file containing an execution configuration. (Minus the .py)')
-	parser.add_argument('--save', '-s', dest='should_save', nargs=1, metavar='FILE', 
-			help='Output the results into a JSON file.')
 	parser.add_argument('--print', '-p', dest='should_print', action='store_true', 
 			help='"Pretty-print" the results.')
+	parser.add_argument('--print-format', '-pf', dest='printfmt', nargs=1, choices=formats, 
+			help='Choose which format to print the data in. (default: json)')
+	parser.add_argument('--save', '-s', dest='should_save', nargs=1, metavar='FILE', 
+			help='Output the results into a file.')
+	parser.add_argument('--save-format', '-sf', dest='savefmt', nargs=1, choices=formats, 
+			help='Choose which format to save the data in. (default: json)')
 	parser.add_argument('--email', '-m', dest='should_email', nargs=1, metavar='ADDRESS', 
 			help='Send an email to the address once complete. (Uses localhost unless --mailserver is given.)')
-	parser.add_argument('--email-format', '-mf', dest='emailfmt', nargs=1, choices=["pprint","json"], 
-			help='Choose between pprint and json for the format of the data sent in the email.')
+	parser.add_argument('--email-format', '-mf', dest='emailfmt', nargs=1, choices=formats, 
+			help='Choose which format to email the data in. (default: json)')
 	parser.add_argument('--mailserver', '-ms', dest='mailserver', nargs=1, metavar='HOST', 
 			help='Use the provided host as a mailserver.')
 	parser.add_argument('--save-raw', '-r', dest='should_saveraw', nargs=1, metavar='DIR', 
@@ -319,19 +342,28 @@ def main():
 	os.chdir(config["original_dir"])
 
 	if args.should_print:
-		print_results(results)
+		formatter_name = default_print_format
+		if args.printfmt:
+			formatter_name = args.printfmt[0]
+		formatter = formatters[formatter_name]
+		print_results(results, formatter=formatter)
 
 	if args.should_save:
-		save_results(args.should_save[0], results)
+		formatter_name = default_save_format
+		if args.savefmt:
+			formatter_name = args.savefmt[0]
+		formatter = formatters[formatter_name]
+		save_results(args.should_save[0], results, formatter=formatter)
 
 	if args.should_email:
 		mailserver = 'localhost'
 		if args.mailserver:
 			mailserver = args.mailserver[0]
-		formatter = pprint.pprint
-		if args.emailfmt[0] == 'json':
-			formatter = json.dumps
 
+		formatter_name = default_email_format
+		if args.emailfmt:
+			formatter_name = args.emailfmt[0]
+		formatter = formatters[formatter_name]
 		email_results(args.should_email[0], results, mailserver=mailserver, formatter=formatter)
 
 if __name__ == "__main__":
