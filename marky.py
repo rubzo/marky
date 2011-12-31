@@ -182,7 +182,8 @@ def run(suite):
 			for experiment_arguments in get_experiment_arguments(suite.argument_variables):
 				total_result_table[program_alias + " " + experiment_arguments] = run_experiment(suite, program, program_alias, experiment_arguments)
 				# Perform aggregation
-				perform_experiment_aggregation(suite, total_result_table[program_alias + " " + experiment_arguments])
+				if config["should_aggregate"] and len(suite.experiment_aggregates) > 0:
+					perform_experiment_aggregation(suite, total_result_table[program_alias + " " + experiment_arguments])
 
 
 	return total_result_table
@@ -252,12 +253,14 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 		benchmark_result["failures"] = failed_iterations
 		benchmark_result["attempts"] = len(run_table) + failed_iterations
 
-		# Perform aggregation
+		# Collect results from runs
 		if len(run_table) > 0:
 			benchmark_result["runs"] = run_table
-			benchmark_result["aggregates"] = {}
-			for (field, (a, key_field)) in suite.benchmark_aggregates.items():
-				benchmark_result["aggregates"][field] = aggregate.aggregate(a, run_table, key_field)
+			# Perform aggregation
+			if config["should_aggregate"] and len(suite.benchmark_aggregates) > 0:
+				benchmark_result["aggregates"] = {}
+				for (field, (a, key_field)) in suite.benchmark_aggregates.items():
+					benchmark_result["aggregates"][field] = aggregate.aggregate(a, run_table, key_field)
 
 		leave_directory()
 		debug_msg(3, "Exited back to " + os.getcwd())
@@ -293,6 +296,8 @@ def main():
 
 	parser.add_argument('file', type=str, nargs=1, metavar='FILE', 
 			help='A file containing an execution configuration. (Minus the .py)')
+	parser.add_argument('--disable-aggregation', '-a', dest='disable_agg', action='store_true', 
+			help='Turn off aggregation calculation for this session.')
 	parser.add_argument('--print', '-p', dest='should_print', action='store_true', 
 			help='"Pretty-print" the results.')
 	parser.add_argument('--print-format', '-pf', dest='printfmt', nargs=1, choices=formats, 
@@ -334,6 +339,10 @@ def main():
 		config["debuglevel"] = args.debuglevel[0]
 	if args.quiet:
 		config["debuglevel"] = 0
+
+	config["should_aggregate"] = True
+	if args.disable_agg:
+		config["should_aggregate"] = False
 
 	os.chdir(suite.benchmark_root)
 

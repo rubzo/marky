@@ -20,7 +20,6 @@ TODO:
 - extra statistics (stdev, standard error, confidence intervals)
 - graph output
 - checking that the description file has the required variables
-- support for disabling aggregate calculation
 - support for loading json files for aggregation, presentation, etc
 - support for organising description files
 - support for simply running programs without a given benchmark to execute
@@ -36,3 +35,4 @@ TODO:
 - benchmarks in different dirs DONE
 - experiment aliases DONE
 - support for different outputs - csv DONE
+- support for disabling aggregate calculation DONE
