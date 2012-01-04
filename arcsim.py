@@ -1,13 +1,16 @@
 import re
+
 import aggregate
+
+root = "/Users/sck/Code/trunk_multicore_reference/"
 
 ### PROGRAMS
 programs = { \
-"arcsim": "/Users/sck/Code/arcsim-trunk/bin/arcsim", \
+"arcsim": root + "bin/arcsim", \
 }
 
 ### BENCHMARK ROOT DIRECTORY
-benchmark_root = "/Users/sck/Code/arcsim-trunk/tests/regression/tests"
+benchmark_root = "/Users/sck/Code/arcsim-multicore/tests/regression/tests"
 
 ### DEFINE BENCHMARK GROUPS HERE
 eembc_default_benchmarks = [ \
@@ -19,10 +22,13 @@ eembc_large_benchmarks = [ \
 ("aifftr01-2000-iter", "eembc/large-iterations", None), \
 ]
 
+splash_benchmarks = [ \
+("cholesky.x", "multicore/splash/cholesky", None), \
+]
+
 # REGISTER BENCHMARK GROUPS HERE
 benchmarks = { \
-"eembc default": eembc_default_benchmarks, \
-"eembc large": eembc_large_benchmarks, \
+"splash": splash_benchmarks
 }
 
 # ARGUMENTS THAT SHOULD BE VARIED
@@ -30,8 +36,13 @@ argument_variables = { \
 "--fast-num-threads=": [10,100], \
 }
 
+# ARGUMENTS THAT SHOULD BE VARIED IN FILES HERE
+file_argument_variables = { \
+"cores": (root + "etc/skeleton-encore.arc", root + "etc/encore.arc", "INSERTCORESHERE", [1,2,4,8]), \
+}
+
 # ARGUMENTS THAT SHOULD ALWAYS BE THERE
-core_arguments = "--fast --verbose"
+core_arguments = "--fast --verbose --emt"
 benchmark_argument = "-e"
 
 # ITERATIONS
@@ -61,6 +72,6 @@ benchmark_aggregates = { \
 "minimum time": (aggregate.minimum, "time"), \
 }
 
-# REGISTER EXPERIMENT (ACROSS ALL BENCHMARKS OF RUN) AGGREGATES HERE
+# REGISTER EXPERIMENT (ACROSS ALL BENCHMARKS OF EXPERIMENT) AGGREGATES HERE
 # (must be a key in benchmark_aggregates)
 experiment_aggregates = ["arithmetric mean"]

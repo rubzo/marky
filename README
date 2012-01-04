@@ -11,7 +11,6 @@ To be decided, currently pretty amorphous!
 TODO:
 =====
 
-- benchmarks that vary by changing config files
 - support for reading benchmark arguments from a script in the benchmark's directory
 - speedup calculations (proper ones)
 - support for other outputs (R's shitty input format/gnuplot (nlsv, basically))
@@ -24,6 +23,7 @@ TODO:
 - support for timing of benchmarks, with no filtering of benchmark output
 - support for verifying experiment correctness
 - support for compiling benchmarks
+- support for describing the experiments that would be run
 
 - experiment aggregation DONE
 - saving of raw outputs DONE
@@ -34,3 +34,4 @@ TODO:
 - support for different outputs - csv DONE
 - support for disabling aggregate calculation DONE
 - support for a warmup run before each benchmark's proper runs DONE
+- benchmarks that vary by changing config files DONE

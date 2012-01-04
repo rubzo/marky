@@ -78,22 +78,29 @@ def build_experiment_arguments(exp_args, arg_vars):
 	if len(arg_vars) == 0:
 		return exp_args
 	else:
-		(key, values) = arg_vars.popitem()
+		(key, (values, is_file_arg_var)) = arg_vars.popitem()
+		if is_file_arg_var:
+			(temp_file, output_file, pattern, real_values) = values
+			values = real_values
 		new_exp_args = []
 		if len(exp_args) == 0:
 			for v in values:
-				new_exp_args.append(emit_argument(key, v))
+				new_exp_args.append([(key, v, is_file_arg_var)])
 		else:
 			for arg in exp_args:
 				for v in values:
-					new_exp_args.append(arg + " " + emit_argument(key, v))
+					new_exp_args.append(arg + [(key, v, is_file_arg_var)])
 		return build_experiment_arguments(new_exp_args, arg_vars)
 
 # From a given dict of argument (key, value) pairs, generate all possible combinations.
-def get_experiment_arguments(arg_vars):
+def get_experiment_arguments(arg_vars, file_arg_vars):
 	exp_args = []
-	arg_vars_copy = dict(arg_vars)
-	exp_args = build_experiment_arguments(exp_args, arg_vars_copy)
+	real_arg_vars = {}
+	for (k, v) in arg_vars.items():
+		real_arg_vars[k] = (v, False)
+	for (k, v) in file_arg_vars.items():
+		real_arg_vars[k] = (v, True)
+	exp_args = build_experiment_arguments(exp_args, real_arg_vars)
 	return exp_args
 
 def save_raw_output(invocation, iteration, raw):
@@ -132,8 +139,28 @@ def convert_to_csv(results):
 
 	return s
 
+# TODO: implement this
 def convert_to_widecsv(results):
 	pass
+
+def update_based_on_file_argument(template_file, output_file, pattern, value):
+	assert os.path.exists(template_file)
+	assert os.path.exists(output_file)
+	tf = open(template_file, "r")
+	of = open(output_file, "w")
+	modified = False
+	for line in tf.readlines():
+		newline = line.replace(pattern, str(value))
+		if newline != line:
+			of.write(newline)
+			modified = True
+		else:
+			of.write(line)
+	if not modified:
+		error_msg('Template file "' + template_file + '" did not contain instance of pattern "' + pattern + '".')
+	of.close()
+	tf.close()
+
 
 # This is called by run() every time it finishes running a given experiment.
 def perform_experiment_aggregation(suite, experiment_table):
@@ -172,18 +199,40 @@ def run(suite):
 	for (program_alias, program) in suite.programs.items():
 
 		# Check if there's argument variables that will require iterating over
-		if (len(suite.argument_variables) == 0):
+		if ((len(suite.argument_variables) + len(suite.file_argument_variables)) == 0):
+
+			exp_name = program_alias	
+
 			# There were none, so simply run this program with no extra arguments
-			total_result_table[program_alias] = run_experiment(suite, program, program_alias)
+			debug_msg(1, "BEGIN EXPERIMENT: " + exp_name)
+			total_result_table[exp_name] = run_experiment(suite, program, program_alias)
 			# Perform aggregation
 			perform_experiment_aggregation(suite, total_result_table[program_alias])
+
+
 		else:
 			# There are some, so use get_experiment_arguments to get a list of all combinations, iterate over them.	
-			for experiment_arguments in get_experiment_arguments(suite.argument_variables):
-				total_result_table[program_alias + " " + experiment_arguments] = run_experiment(suite, program, program_alias, experiment_arguments)
+			for experiment_arguments in get_experiment_arguments(suite.argument_variables, suite.file_argument_variables):
+				exp_params = ""
+				experiment_arguments_string = ""
+				for exp_arg in experiment_arguments:
+					(name, value, is_file_arg_var) = exp_arg
+					if is_file_arg_var:
+						exp_params += (name + ":" + str(value) + " ")
+						# change a file based on description file listing
+						(temp_file, output_file, pattern, values) = suite.file_argument_variables[name]
+						update_based_on_file_argument(temp_file, output_file, pattern, value)
+
+					else:
+						exp_params += emit_argument(name, value)
+						experiment_arguments_string += emit_argument(name, value)
+
+				exp_name = program_alias + " " + exp_params
+				debug_msg(1, "BEGIN EXPERIMENT: " + exp_name)
+				total_result_table[exp_name] = run_experiment(suite, program, program_alias, experiment_arguments_string)
 				# Perform aggregation
 				if config["should_aggregate"] and len(suite.experiment_aggregates) > 0:
-					perform_experiment_aggregation(suite, total_result_table[program_alias + " " + experiment_arguments])
+					perform_experiment_aggregation(suite, total_result_table[exp_name])
 
 
 	return total_result_table
