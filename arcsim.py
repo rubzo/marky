@@ -21,9 +21,8 @@ eembc_large_benchmarks = [ \
 ("a2time01-120000-iter", "eembc/large-iterations", None), \
 ("aifftr01-2000-iter", "eembc/large-iterations", None), \
 ]
-
 splash_benchmarks = [ \
-("cholesky.x", "multicore/splash/cholesky", None), \
+("cholesky.x", "multicore/splash/cholesky", "runcmd"), \
 ]
 
 # REGISTER BENCHMARK GROUPS HERE
@@ -33,7 +32,7 @@ benchmarks = { \
 
 # ARGUMENTS THAT SHOULD BE VARIED
 argument_variables = { \
-"--fast-num-threads=": [10,100], \
+"--fast-num-threads=": [3,100], \
 }
 
 # ARGUMENTS THAT SHOULD BE VARIED IN FILES HERE
@@ -42,7 +41,7 @@ file_argument_variables = { \
 }
 
 # ARGUMENTS THAT SHOULD ALWAYS BE THERE
-core_arguments = "--fast --verbose --emt"
+core_arguments = "--fast --verbose"
 benchmark_argument = "-e"
 
 # ITERATIONS
@@ -63,6 +62,9 @@ filters = { \
 "translated instructions": trans_inst_filter, \
 "total instructions": total_inst_filter, \
 }
+
+# This is used by certain output formats.
+filter_order = ["time", "mips", "interpreted instructions", "translated instructions", "total instructions"]
 
 # REGISTER BENCHMARK (ACROSS ALL RUNS OF BENCHMARK) AGGREGATES HERE
 benchmark_aggregates = { \

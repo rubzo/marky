@@ -2,7 +2,7 @@
 
 import os, subprocess, re, sys, string, json, argparse
 
-import aggregate, mailer
+import aggregate, mailer, args
 from config import config
 from debug import debug_msg
 
@@ -67,42 +67,6 @@ def cleanup_run(run):
 		run[field] = convert_data(run[field])
 	return run
 
-# Turn (key, value) into the appropriate argument format for execution.
-def emit_argument(key, value):
-	if (key[-1] == '='):
-		return key + str(value)
-	return key + " " + str(value)
-
-# A recursive function for building up arguments to be used in the experiment.
-def build_experiment_arguments(exp_args, arg_vars):
-	if len(arg_vars) == 0:
-		return exp_args
-	else:
-		(key, (values, is_file_arg_var)) = arg_vars.popitem()
-		if is_file_arg_var:
-			(temp_file, output_file, pattern, real_values) = values
-			values = real_values
-		new_exp_args = []
-		if len(exp_args) == 0:
-			for v in values:
-				new_exp_args.append([(key, v, is_file_arg_var)])
-		else:
-			for arg in exp_args:
-				for v in values:
-					new_exp_args.append(arg + [(key, v, is_file_arg_var)])
-		return build_experiment_arguments(new_exp_args, arg_vars)
-
-# From a given dict of argument (key, value) pairs, generate all possible combinations.
-def get_experiment_arguments(arg_vars, file_arg_vars):
-	exp_args = []
-	real_arg_vars = {}
-	for (k, v) in arg_vars.items():
-		real_arg_vars[k] = (v, False)
-	for (k, v) in file_arg_vars.items():
-		real_arg_vars[k] = (v, True)
-	exp_args = build_experiment_arguments(exp_args, real_arg_vars)
-	return exp_args
-
 def save_raw_output(invocation, iteration, raw):
 	if config["saveraw"]:
 
@@ -121,7 +85,9 @@ def save_raw_output(invocation, iteration, raw):
 
 		debug_msg(3, "Saved raw output to " + save_location)
 	
+# This converts the provided results table to a string containing a CSV representation.
 def convert_to_csv(results):
+	# TODO: work out how to produce the headings
 	s = '"experiment_name","benchmark","i",\n'
 	for (exp_name, exp) in results.items():
 		for (bm_name, bm) in exp["benchmarks"].items():
@@ -143,6 +109,8 @@ def convert_to_csv(results):
 def convert_to_widecsv(results):
 	pass
 
+# This method modifies one of the config files of the program being run.
+# all instances of 'pattern' have been replaced by the given 'value'.
 def update_based_on_file_argument(template_file, output_file, pattern, value):
 	assert os.path.exists(template_file)
 	assert os.path.exists(output_file)
@@ -161,6 +129,15 @@ def update_based_on_file_argument(template_file, output_file, pattern, value):
 	of.close()
 	tf.close()
 
+# TODO: Add caching here?
+# This reads arguments for use when executing a benchmark from the given filename.
+# This returned string is expected to replace the name of the benchmark, so should contain it!
+def get_arguments_from_file(filename):
+	assert os.path.exists(filename)
+	f = open(filename, "r")
+	args = f.read().strip()
+	f.close()
+	return args
 
 # This is called by run() every time it finishes running a given experiment.
 def perform_experiment_aggregation(suite, experiment_table):
@@ -211,21 +188,22 @@ def run(suite):
 
 
 		else:
-			# There are some, so use get_experiment_arguments to get a list of all combinations, iterate over them.	
-			for experiment_arguments in get_experiment_arguments(suite.argument_variables, suite.file_argument_variables):
+			# There are some, so use args.get_experiment_arguments to get a list of all combos, iterate over them.	
+			for experiment_arguments in args.get_experiment_arguments(suite.argument_variables, suite.file_argument_variables):
 				exp_params = ""
 				experiment_arguments_string = ""
 				for exp_arg in experiment_arguments:
 					(name, value, is_file_arg_var) = exp_arg
 					if is_file_arg_var:
 						exp_params += (name + ":" + str(value) + " ")
-						# change a file based on description file listing
+
+						# change a config file
 						(temp_file, output_file, pattern, values) = suite.file_argument_variables[name]
 						update_based_on_file_argument(temp_file, output_file, pattern, value)
 
 					else:
-						exp_params += emit_argument(name, value)
-						experiment_arguments_string += emit_argument(name, value)
+						exp_params += args.emit_argument(name, value)
+						experiment_arguments_string += args.emit_argument(name, value)
 
 				exp_name = program_alias + " " + exp_params
 				debug_msg(1, "BEGIN EXPERIMENT: " + exp_name)
@@ -258,9 +236,13 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 		enter_directory(directory)
 		debug_msg(3, "Entered into " + os.getcwd())
 
-		if config["should_warmup"]:
-			invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
+		if (executescript):
+			benchmark = get_arguments_from_file(executescript)
 
+		# Construct the command used to execute the benchmark
+		invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
+
+		if config["should_warmup"]:
 			debug_msg(1, "RUN: '" + invocation + "' (WARMUP)")
 			try:
 				execute_and_capture_output(invocation)
@@ -276,9 +258,6 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 
 			# This stores the fields collected for this run.
 			run = {}
-
-			# Construct the command used to execute the benchmark
-			invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
 
 			debug_msg(1, "RUN: '" + invocation + "' (ITER: " + str(i+1) + "/" + str(suite.iterations) + ")")
 
