@@ -2,7 +2,7 @@ import re
 
 import aggregate
 
-root = "/Users/sck/Code/trunk_multicore_reference/"
+root = "/Users/sck/Code/arcsim-trunk/"
 
 ### PROGRAMS
 programs = { \
@@ -10,7 +10,7 @@ programs = { \
 }
 
 ### BENCHMARK ROOT DIRECTORY
-benchmark_root = "/Users/sck/Code/arcsim-multicore/tests/regression/tests"
+benchmark_root = root + "tests/regression/tests/"
 
 ### DEFINE BENCHMARK GROUPS HERE
 eembc_default_benchmarks = [ \
@@ -21,18 +21,27 @@ eembc_large_benchmarks = [ \
 ("a2time01-120000-iter", "eembc/large-iterations", None), \
 ("aifftr01-2000-iter", "eembc/large-iterations", None), \
 ]
+bioperf_benchmarks = [ \
+("clustalw", "bioperf/clustalw", "runcmd-small"), \
+("grappa", "bioperf/grappa", "runcmd-small"), \
+("hmmer-hmmsearch", "bioperf/hmmer-hmmsearch", "runcmd-small"), \
+("tcoffee", "bioperf/tcoffee", "runcmd-small"), \
+("blast-blastp", "bioperf/blast-blastp", "runcmd-small"), \
+("blast-blastn", "bioperf/blast-blastn", "runcmd-small"), \
+("glimmer", "bioperf/glimmer", "runcmd-small"), \
+]
 splash_benchmarks = [ \
 ("cholesky.x", "multicore/splash/cholesky", "runcmd"), \
 ]
 
 # REGISTER BENCHMARK GROUPS HERE
 benchmarks = { \
-"splash": splash_benchmarks
+"bioperf": bioperf_benchmarks, \
 }
 
 # ARGUMENTS THAT SHOULD BE VARIED
 argument_variables = { \
-"--fast-num-threads=": [3,100], \
+"--fast-num-threads=": [1], \
 }
 
 # ARGUMENTS THAT SHOULD BE VARIED IN FILES HERE
@@ -41,11 +50,11 @@ file_argument_variables = { \
 }
 
 # ARGUMENTS THAT SHOULD ALWAYS BE THERE
-core_arguments = "--fast --verbose"
+core_arguments = "--fast --verbose --emt"
 benchmark_argument = "-e"
 
 # ITERATIONS
-iterations = 2
+iterations = 3
 
 # DEFINE FILTERS HERE
 time_filter = re.compile("Simulation time = ([^ ]+) \[Seconds\]")

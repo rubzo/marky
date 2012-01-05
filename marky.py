@@ -2,7 +2,7 @@
 
 import os, subprocess, re, sys, string, json, argparse
 
-import aggregate, mailer, args
+import aggregate, mailer, args, ecd
 from config import config
 from debug import debug_msg
 
@@ -332,11 +332,13 @@ def main():
 			description = "marky - a benchmark execution and statistics gathering framework")
 
 	parser.add_argument('file', type=str, nargs=1, metavar='FILE', 
-			help='A file containing an execution configuration. (Minus the .py)')
+			help='A file containing an execution configuration. (or ECD) (Minus the .py)')
 	parser.add_argument('--disable-aggregation', '-a', dest='disable_agg', action='store_true', 
 			help='Turn off aggregation calculation for this session.')
 	parser.add_argument('--warmup', '-w', dest='should_warmup', action='store_true', 
 			help='Perform a warmup run of each benchmark that is not recorded.')
+	parser.add_argument('--explain', '-e', dest='should_explain', action='store_true', 
+			help='Explain the experiments that will be run by the provided ECD.')
 	parser.add_argument('--print', '-p', dest='should_print', action='store_true', 
 			help='"Pretty-print" the results.')
 	parser.add_argument('--print-format', '-pf', dest='printfmt', nargs=1, choices=formats, 
@@ -359,12 +361,23 @@ def main():
 			help='Hide all output (apart from errors.)')
 	args = parser.parse_args()
 
+	config["debuglevel"] = 1
+	if args.debuglevel:
+		config["debuglevel"] = args.debuglevel[0]
+	if args.quiet:
+		config["debuglevel"] = 0
+
 	suite = 0
 	if args.file:
 		# (ecd = Execution Configuration Description)
-		ecd = args.file[0]
-		ecd = string.replace(ecd, ".py", "")
-		suite = __import__(ecd)
+		ecd_name = args.file[0]
+		ecd_name = string.replace(ecd_name, ".py", "")
+		suite = __import__(ecd_name)
+		ecd.check_ecd(suite)
+
+	if args.should_explain:
+		ecd.explain_ecd(suite)
+		exit(0)
 
 	config["original_dir"] = os.getcwd()
 
@@ -373,11 +386,6 @@ def main():
 		config["saveraw"] = True
 		config["saveraw_dir"] = config["original_dir"] + "/" + args.should_saveraw[0]
 
-	config["debuglevel"] = 1
-	if args.debuglevel:
-		config["debuglevel"] = args.debuglevel[0]
-	if args.quiet:
-		config["debuglevel"] = 0
 
 	config["should_aggregate"] = True
 	if args.disable_agg:
