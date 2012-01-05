@@ -2,14 +2,14 @@
 
 import os, subprocess, re, sys, string, json, argparse
 
-import aggregate, mailer, args, ecd
+import stats, mailer, args, ecd
 from config import config
 from debug import debug_msg
 
 # Function used to capture all output from a program it executes.
 # Executes the whole program before returning any output.
 def execute_and_capture_output(program):
-	output = 0
+	output = None
 	try:
 		output = subprocess.check_output(program, shell=True, stderr=subprocess.STDOUT)
 	except subprocess.CalledProcessError as e:
@@ -89,7 +89,7 @@ def save_raw_output(invocation, iteration, raw):
 def convert_to_csv(results):
 	# TODO: work out how to produce the headings
 	s = '"experiment_name","benchmark","i",\n'
-	for (exp_name, exp) in results.items():
+	for (exp_name, exp) in results["experiments"].items():
 		for (bm_name, bm) in exp["benchmarks"].items():
 			run_counter = 1
 			for run in bm["runs"]:
@@ -160,7 +160,7 @@ def perform_experiment_aggregation(suite, experiment_table):
 
 		# Now present the run table to aggregate.aggregate, which simply treats it as it would if it were 
 		# aggregating a list of runs for a single benchmark!
-		experiment_table["aggregates"][aggregate_name] = aggregate.aggregate(aggregate_fun, run_table, key_field)
+		experiment_table["aggregates"][aggregate_name] = stats.aggregate(aggregate_fun, run_table, key_field)
 
 # -----
 # Functions that should be exposed to main are below:
@@ -171,6 +171,7 @@ def perform_experiment_aggregation(suite, experiment_table):
 def run(suite):
 	# The amorphous monstrosity of a table
 	total_result_table = {}
+	total_result_table["experiments"] = {}
 
 	# Go through the programs...
 	for (program_alias, program) in suite.programs.items():
@@ -182,9 +183,9 @@ def run(suite):
 
 			# There were none, so simply run this program with no extra arguments
 			debug_msg(1, "BEGIN EXPERIMENT: " + exp_name)
-			total_result_table[exp_name] = run_experiment(suite, program, program_alias)
+			total_result_table["experiments"][exp_name] = run_experiment(suite, program, program_alias)
 			# Perform aggregation
-			perform_experiment_aggregation(suite, total_result_table[program_alias])
+			perform_experiment_aggregation(suite, total_result_table["experiments"][program_alias])
 
 
 		else:
@@ -207,11 +208,10 @@ def run(suite):
 
 				exp_name = program_alias + " " + exp_params
 				debug_msg(1, "BEGIN EXPERIMENT: " + exp_name)
-				total_result_table[exp_name] = run_experiment(suite, program, program_alias, experiment_arguments_string)
+				total_result_table["experiments"][exp_name] = run_experiment(suite, program, program_alias, experiment_arguments_string)
 				# Perform aggregation
 				if config["should_aggregate"] and len(suite.experiment_aggregates) > 0:
-					perform_experiment_aggregation(suite, total_result_table[exp_name])
-
+					perform_experiment_aggregation(suite, total_result_table["experiments"][exp_name])
 
 	return total_result_table
 
@@ -297,7 +297,7 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 			if config["should_aggregate"] and len(suite.benchmark_aggregates) > 0:
 				benchmark_result["aggregates"] = {}
 				for (field, (a, key_field)) in suite.benchmark_aggregates.items():
-					benchmark_result["aggregates"][field] = aggregate.aggregate(a, run_table, key_field)
+					benchmark_result["aggregates"][field] = stats.aggregate(a, run_table, key_field)
 
 		leave_directory()
 		debug_msg(3, "Exited back to " + os.getcwd())
@@ -343,6 +343,8 @@ def main():
 			help='"Pretty-print" the results.')
 	parser.add_argument('--print-format', '-pf', dest='printfmt', nargs=1, choices=formats, 
 			help='Choose which format to print the data in. (default: json)')
+	parser.add_argument('--load', '-l', dest='should_load', nargs=1, metavar='FILE', 
+			help='Load previous results from a file. (supports JSON only)')
 	parser.add_argument('--save', '-s', dest='should_save', nargs=1, metavar='FILE', 
 			help='Output the results into a file.')
 	parser.add_argument('--save-format', '-sf', dest='savefmt', nargs=1, choices=formats, 
@@ -359,6 +361,8 @@ def main():
 			help='Set debug info level. 1 = Announce each benchmark invocation. 2 = Include time taken. 3 = Everything else. (Default = 1) (Set to 0 for quiet, or use --quiet.)')
 	parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', 
 			help='Hide all output (apart from errors.)')
+	parser.add_argument('--speedups', '-cs', dest='should_calculate_speedups', action='store_true', 
+			help='Assuming only two experiments will be run, calculate the speedups.')
 	args = parser.parse_args()
 
 	config["debuglevel"] = 1
@@ -367,7 +371,7 @@ def main():
 	if args.quiet:
 		config["debuglevel"] = 0
 
-	suite = 0
+	suite = None
 	if args.file:
 		# (ecd = Execution Configuration Description)
 		ecd_name = args.file[0]
@@ -395,11 +399,20 @@ def main():
 	if args.should_warmup:
 		config["should_warmup"] = True
 
-	os.chdir(suite.benchmark_root)
+	results = None
+	if args.should_load:
+		debug_msg(1, "Loading previous results from " + args.should_load[0])
+		json_file = open(args.should_load[0], "r")
+		results = json.load(json_file)
+		json_file.close()
+	else:
+		debug_msg(1, "Running experiment to obtain results!")
+		os.chdir(suite.benchmark_root)
+		results = run(suite)
+		os.chdir(config["original_dir"])
 
-	results = run(suite)
-
-	os.chdir(config["original_dir"])
+	if args.should_calculate_speedups:
+		stats.calculate_speedups(results)
 
 	if args.should_print:
 		formatter_name = default_print_format

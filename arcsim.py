@@ -1,6 +1,6 @@
 import re
 
-import aggregate
+import stats
 
 root = "/Users/sck/Code/arcsim-trunk/"
 
@@ -36,18 +36,20 @@ splash_benchmarks = [ \
 
 # REGISTER BENCHMARK GROUPS HERE
 benchmarks = { \
-"bioperf": bioperf_benchmarks, \
+"eembc default": eembc_default_benchmarks, \
+"eembc large": eembc_large_benchmarks, \
 }
 
 # ARGUMENTS THAT SHOULD BE VARIED
 argument_variables = { \
-"--fast-num-threads=": [1], \
+"--fast-num-threads=": [1,100], \
 }
 
 # ARGUMENTS THAT SHOULD BE VARIED IN FILES HERE
-file_argument_variables = { \
-"cores": (root + "etc/skeleton-encore.arc", root + "etc/encore.arc", "INSERTCORESHERE", [1,2,4,8]), \
-}
+#file_argument_variables = { \
+#"cores": (root + "etc/skeleton-encore.arc", root + "etc/encore.arc", "INSERTCORESHERE", [1,2,4,8]), \
+#}
+file_argument_variables = {}
 
 # ARGUMENTS THAT SHOULD ALWAYS BE THERE
 core_arguments = "--fast --verbose --emt"
@@ -77,10 +79,10 @@ filter_order = ["time", "mips", "interpreted instructions", "translated instruct
 
 # REGISTER BENCHMARK (ACROSS ALL RUNS OF BENCHMARK) AGGREGATES HERE
 benchmark_aggregates = { \
-"arithmetric mean": (aggregate.arithmetric_mean, None), \
-"geometric mean": (aggregate.geometric_mean, None), \
-"maximum mips": (aggregate.maximum, "mips"), \
-"minimum time": (aggregate.minimum, "time"), \
+"arithmetric mean": (stats.arithmetric_mean, None), \
+"geometric mean": (stats.geometric_mean, None), \
+"maximum mips": (stats.maximum, "mips"), \
+"minimum time": (stats.minimum, "time"), \
 }
 
 # REGISTER EXPERIMENT (ACROSS ALL BENCHMARKS OF EXPERIMENT) AGGREGATES HERE
