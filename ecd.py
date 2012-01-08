@@ -25,10 +25,12 @@ def explain_ecd(suite):
 	print "... with the following benchmarks:"
 	for (bm_group_name, bm_group) in suite.benchmarks.items():
 		print "  (benchmark group: " + bm_group_name + ")"
-		for (bm_name, bm_loc, executescript) in bm_group:
+		for (bm_name, bm_loc, executescript, timeout) in bm_group:
 			extra = ""
 			if executescript:
 				extra = " with execute script '" + executescript + "'"
+			if timeout:
+				extra += " - with timeout: " + str(timeout)
 			print "   " + bm_name + " - found in " + bm_loc + extra 
 	print
 	print "... changing the following variables:"
