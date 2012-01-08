@@ -14,24 +14,24 @@ benchmark_root = root + "tests/regression/tests/"
 
 ### DEFINE BENCHMARK GROUPS HERE
 eembc_default_benchmarks = [ \
-("a2time01-default-iter", "eembc/default-iterations", None), \
-("aifftr01-default-iter", "eembc/default-iterations", None), \
+("a2time01-default-iter", "eembc/default-iterations", None, None), \
+("aifftr01-default-iter", "eembc/default-iterations", None, None), \
 ]
 eembc_large_benchmarks = [ \
-("a2time01-120000-iter", "eembc/large-iterations", None), \
-("aifftr01-2000-iter", "eembc/large-iterations", None), \
+("a2time01-120000-iter", "eembc/large-iterations", None, None), \
+("aifftr01-2000-iter", "eembc/large-iterations", None, None), \
 ]
 bioperf_benchmarks = [ \
-("clustalw", "bioperf/clustalw", "runcmd-small"), \
-("grappa", "bioperf/grappa", "runcmd-small"), \
-("hmmer-hmmsearch", "bioperf/hmmer-hmmsearch", "runcmd-small"), \
-("tcoffee", "bioperf/tcoffee", "runcmd-small"), \
-("blast-blastp", "bioperf/blast-blastp", "runcmd-small"), \
-("blast-blastn", "bioperf/blast-blastn", "runcmd-small"), \
-("glimmer", "bioperf/glimmer", "runcmd-small"), \
+("clustalw", "bioperf/clustalw", "runcmd-small", None), \
+("grappa", "bioperf/grappa", "runcmd-small", None), \
+("hmmer-hmmsearch", "bioperf/hmmer-hmmsearch", "runcmd-small", None), \
+("tcoffee", "bioperf/tcoffee", "runcmd-small", None), \
+("blast-blastp", "bioperf/blast-blastp", "runcmd-small", None), \
+("blast-blastn", "bioperf/blast-blastn", "runcmd-small", None), \
+("glimmer", "bioperf/glimmer", "runcmd-small", None), \
 ]
 splash_benchmarks = [ \
-("cholesky.x", "multicore/splash/cholesky", "runcmd"), \
+("cholesky.x", "multicore/splash/cholesky", "runcmd", 20), \
 ]
 
 # REGISTER BENCHMARK GROUPS HERE

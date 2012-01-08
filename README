@@ -11,9 +11,9 @@ To be decided, currently pretty amorphous!
 TODO:
 =====
 
-- support for running benchmarks with a timeout
 - support for other outputs (R's shitty input format/gnuplot (nlsv, basically))
 - extra statistics (stdev, standard error, confidence intervals)
+- aggregation should be decoupled from experiment running phase
 - graph output
 - support for simply running programs without a given benchmark to execute
 - support for timing of benchmarks, with no filtering of benchmark output
@@ -36,3 +36,4 @@ TODO:
 - support for describing the experiments that would be run DONE
 - speedup calculations (proper ones) DONE
 - support for loading json files for aggregation, presentation, etc DONE
+- support for running benchmarks with a timeout DONE

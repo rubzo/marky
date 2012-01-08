@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
-import os, subprocess, re, sys, string, json, argparse
+import os, subprocess, re, sys, string, json, argparse, datetime, time, signal
 
-import stats, mailer, args, ecd
+import stats, mailer, args, ecd, graphing
 from config import config
-from debug import debug_msg
+from debug import debug_msg, error_msg, warning_msg
+
+# Codes used by the execute_and_capture_output methods.
+TIMEOUT_ERROR = 1
+FAILURE_ERROR = 2
 
 # Function used to capture all output from a program it executes.
 # Executes the whole program before returning any output.
@@ -14,7 +18,24 @@ def execute_and_capture_output(program):
 		output = subprocess.check_output(program, shell=True, stderr=subprocess.STDOUT)
 	except subprocess.CalledProcessError as e:
 		# TODO: Work out how on earth I get information about the error!
-		raise e
+		raise Exception("Run failed!", FAILURE_ERROR)
+	return output
+
+def execute_and_capture_output_with_timeout(program, timeout):
+	try:
+		start = datetime.datetime.now()
+		process = subprocess.Popen(program, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		while process.poll() is None:
+			time.sleep(0.5)
+			now = datetime.datetime.now()
+			if (now - start).seconds > timeout:
+				os.kill(process.pid, signal.SIGKILL)
+				os.waitpid(-1, os.WNOHANG)
+				raise Exception("Run timed out!", TIMEOUT_ERROR)
+		return process.stdout.read()
+	except subprocess.CalledProcessError as e:
+		# TODO: Work out how on earth I get information about the error!
+		raise Exception("Run failed!", FAILURE_ERROR)
 	return output
 
 # Implementation of pushd
@@ -225,11 +246,11 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 	# We will then iterate over that.
 	actual_benchmarks = []
 	for (group_name, group_benchmarks) in suite.benchmarks.items():
-		for (name, directory, executescript) in group_benchmarks:
-			actual_benchmarks.append((group_name, name, directory, executescript))
+		for (name, directory, executescript, timeout) in group_benchmarks:
+			actual_benchmarks.append((group_name, name, directory, executescript, timeout))
 
 	# Go through the benchmarks...
-	for (group_name, benchmark, directory, executescript) in actual_benchmarks:
+	for (group_name, benchmark, directory, executescript, timeout) in actual_benchmarks:
 
 		benchmark_name = group_name + " ++ " + benchmark
 
@@ -245,13 +266,23 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 		if config["should_warmup"]:
 			debug_msg(1, "RUN: '" + invocation + "' (WARMUP)")
 			try:
-				execute_and_capture_output(invocation)
-			except Exception:
-				error_msg("Warmup run failed!")
+				if timeout:
+					execute_and_capture_output_with_timeout(invocation, timeout)
+				else:
+					execute_and_capture_output(invocation)
+			except Exception as e:
+				if e.args[1] == TIMEOUT_ERROR:
+					debug_msg(1, "Run timed out... (timeout is " + str(timeout) + "s)")
+					timedout_iterations += 1
+					failed_iterations += 1
+				if e.args[1] == FAILURE_ERROR:
+					debug_msg(1, "Run failed...")
+					failed_iterations += 1
 
 		# We store all the runs in here.
 		run_table = []
 		failed_iterations = 0
+		timedout_iterations = 0
 
 		# Go through the iterations...
 		for i in range(suite.iterations):
@@ -265,7 +296,10 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 			raw = ""
 			try:
 				# Actually execute the benchmark
-				raw = execute_and_capture_output(invocation)
+				if timeout:
+					raw = execute_and_capture_output_with_timeout(invocation, timeout)
+				else:
+					raw = execute_and_capture_output(invocation)
 
 				# Save the output, if required
 				save_raw_output(program_alias + experiment_arguments, i, raw)
@@ -279,15 +313,20 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 
 				# Save this run
 				run_table.append(run)
-
-			except Exception:
-				# Something bad happened when running the benchmark, just ignore it and keep going.	
-				failed_iterations += 1
+			except Exception as e:
+				if e.args[1] == TIMEOUT_ERROR:
+					debug_msg(1, "Run timed out... (timeout is " + str(timeout) + "s)")
+					timedout_iterations += 1
+					failed_iterations += 1
+				if e.args[1] == FAILURE_ERROR:
+					debug_msg(1, "Run failed...")
+					failed_iterations += 1
 
 		# Finished running this benchmark for X iterations...
 		benchmark_result = {}
 		benchmark_result["successes"] = len(run_table)
 		benchmark_result["failures"] = failed_iterations
+		benchmark_result["timeouts"] = timedout_iterations
 		benchmark_result["attempts"] = len(run_table) + failed_iterations
 
 		# Collect results from runs
@@ -413,6 +452,9 @@ def main():
 
 	if args.should_calculate_speedups:
 		stats.calculate_speedups(results)
+
+	# temporary
+	#graphing.graph_barchart_from_dict(results["speedups"]["arcsim --fast-num-threads=1 -> arcsim --fast-num-threads=100"])	
 
 	if args.should_print:
 		formatter_name = default_print_format
