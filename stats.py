@@ -1,3 +1,8 @@
+try:
+	reduce(sum, [])
+except NameError:
+	from functools import reduce
+
 def arithmetric_mean(values):
 	total = sum(values)
 	return (float(total)) / len(values)
