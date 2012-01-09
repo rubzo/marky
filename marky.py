@@ -314,7 +314,7 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 	return experiment_table
 
 def print_results(results, formatter=json.dumps):
-	print formatter(results)
+	print(formatter(results))
 
 def save_results(filename, results, formatter=json.dumps):
 	f = open(filename, "w")

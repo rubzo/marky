@@ -15,44 +15,44 @@ rules = [ \
 ]
 
 def explain_ecd(suite):
-	print "marky - Experiments Explanation"
-	print "-------------------------------"
-	print
-	print "Marky will run the following programs:"
+	print("marky - Experiments Explanation")
+	print("-------------------------------")
+	print()
+	print("Marky will run the following programs:")
 	for (program_alias, location) in suite.programs.items():
-		print "  " + program_alias + " - found at " + location
-	print
-	print "... with the following benchmarks:"
+		print("  " + program_alias + " - found at " + location)
+	print()
+	print("... with the following benchmarks:")
 	for (bm_group_name, bm_group) in suite.benchmarks.items():
-		print "  (benchmark group: " + bm_group_name + ")"
+		print("  (benchmark group: " + bm_group_name + ")")
 		for (bm_name, bm_loc, executescript, timeout) in bm_group:
 			extra = ""
 			if executescript:
 				extra = " with execute script '" + executescript + "'"
 			if timeout:
 				extra += " - with timeout: " + str(timeout)
-			print "   " + bm_name + " - found in " + bm_loc + extra 
-	print
-	print "... changing the following variables:"
+			print("   " + bm_name + " - found in " + bm_loc + extra)
+	print()
+	print("... changing the following variables:")
 	for (name, values) in suite.argument_variables.items():
-		print "  '" + name + "' with values: " + str(values)
+		print("  '" + name + "' with values: " + str(values))
 	for (name, (t,output_file,p,values)) in suite.file_argument_variables.items():
-		print "  '" + name + "' with values: " + str(values) + " (in config file " + output_file + ")"
-	print
-	print "... running each benchmark " + str(suite.iterations) + " times."
-	print
-	print "... with the core arguments '" + str(suite.core_arguments) + "'"
-	print
-	print "... running the following filters:"
+		print("  '" + name + "' with values: " + str(values) + " (in config file " + output_file + ")")
+	print()
+	print("... running each benchmark " + str(suite.iterations) + " times.")
+	print()
+	print("... with the core arguments '" + str(suite.core_arguments) + "'")
+	print()
+	print("... running the following filters:")
 	for (filter_name, f) in suite.filters.items():
-		print "  " + filter_name
-	print
-	print "... using the following benchmark aggregates:"
+		print("  " + filter_name)
+	print()
+	print("... using the following benchmark aggregates:")
 	for (aggregate_name, a) in suite.benchmark_aggregates.items():
 		extra = ""
 		if (aggregate_name in suite.experiment_aggregates):
 			extra = " (*** experiment aggregate ***)"
-		print "  " + aggregate_name + extra
+		print("  " + aggregate_name + extra)
 
 def check_ecd(suite):
 	debug.debug_msg(3, "Sanity checking the provided ECD...")
