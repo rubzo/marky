@@ -2,7 +2,7 @@
 
 import os, subprocess, re, sys, string, json, argparse, datetime, time, signal
 
-import stats, mailer, args, ecd, graphing
+import stats, mailer, args, ecd
 from config import config
 from debug import debug_msg, error_msg, warning_msg
 
@@ -417,9 +417,6 @@ def main():
 
 	if args.should_calculate_speedups:
 		stats.calculate_speedups(results)
-
-	# temporary
-	#graphing.graph_barchart_from_dict(results["speedups"]["arcsim --fast-num-threads=1 -> arcsim --fast-num-threads=100"])	
 
 	if args.should_print:
 		formatter_name = default_print_format
