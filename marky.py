@@ -96,8 +96,8 @@ def save_raw_output(invocation, iteration, raw):
 			debug_msg(3, "Raw output directory doesn't exist! Creating...")
 			os.mkdir(directory)
 
-		filename = string.replace(invocation, " ", "") 
-		filename = string.replace(filename, "/", "") 
+		filename = invocation.replace(" ", "") 
+		filename = filename.replace("/", "") 
 		filename += "-i" + str(iteration+1)
 		save_location = directory + "/" + filename
 		f = open(save_location, "w")
@@ -381,7 +381,7 @@ def main():
 	if args.file:
 		# (ecd = Execution Configuration Description)
 		ecd_name = args.file[0]
-		ecd_name = string.replace(ecd_name, ".py", "")
+		ecd_name = ecd_name.replace(".py", "")
 		suite = __import__(ecd_name)
 		ecd.check_ecd(suite)
 
