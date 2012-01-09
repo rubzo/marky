@@ -274,7 +274,7 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 					raw = execute_and_capture_output(invocation)
 
 				# Save the output, if required
-				save_raw_output(program_alias + experiment_arguments, i, raw)
+				save_raw_output(program_alias + experiment_arguments + benchmark, i, raw)
 
 				# Now collect the fields using our provided filters.
 				for (field, field_filter) in suite.filters.items():
