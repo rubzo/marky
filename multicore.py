@@ -50,11 +50,11 @@ benchmark_argument = "-e"
 iterations = 1
 
 # DEFINE FILTERS HERE
-time_filter = re.compile("[SYSTEM] Total Simulation time[ ]*= ([^ ]+) \[Seconds\]")
-mips_filter = re.compile("[SYSTEM] Overall Simulation rate[ ]*= ([^ ]+) \[MIPS\]")
-interp_inst_filter = re.compile("[SYSTEM] Total Interpreted instructions[ ]*= (\d+)")
-trans_inst_filter = re.compile("[SYSTEM] Total Translated instructions[ ]*= (\d+)")
-total_inst_filter = re.compile("[SYSTEM] Total instructions[ ]*= (\d+)")
+time_filter = re.compile("\[SYSTEM\] Total Simulation time[ ]*= ([^ ]+) \[Seconds\]")
+mips_filter = re.compile("\[SYSTEM\] Overall Simulation rate[ ]*= ([^ ]+) \[MIPS\]")
+interp_inst_filter = re.compile("\[SYSTEM\] Total Interpreted instructions[ ]*= (\d+)")
+trans_inst_filter = re.compile("\[SYSTEM\] Total Translated instructions[ ]*= (\d+)")
+total_inst_filter = re.compile("\[SYSTEM\] Total Instructions[ ]*= (\d+)")
 
 # REGISTER FILTERS HERE
 filters = { \

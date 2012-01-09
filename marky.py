@@ -19,7 +19,7 @@ def execute_and_capture_output(program):
 	except subprocess.CalledProcessError as e:
 		# TODO: Work out how on earth I get information about the error!
 		raise Exception("Run failed!", FAILURE_ERROR)
-	return output
+	return str(output)
 
 def execute_and_capture_output_with_timeout(program, timeout):
 	try:
@@ -32,11 +32,10 @@ def execute_and_capture_output_with_timeout(program, timeout):
 				os.kill(process.pid, signal.SIGKILL)
 				os.waitpid(-1, os.WNOHANG)
 				raise Exception("Run timed out!", TIMEOUT_ERROR)
-		return process.stdout.read()
+		return str(process.stdout.read())
 	except subprocess.CalledProcessError as e:
 		# TODO: Work out how on earth I get information about the error!
 		raise Exception("Run failed!", FAILURE_ERROR)
-	return output
 
 # Implementation of pushd
 directories = []
@@ -60,6 +59,7 @@ def run_filter(raw, filter_function):
 	if match:
 		return match.group(1)
 	else:
+		warning_msg("Filter '" + filter_function.pattern + "' failed to collect data!")
 		return None
 
 # Should do similar to the above, but return a list of all matches
