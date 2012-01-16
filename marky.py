@@ -29,6 +29,7 @@ def execute_and_capture_output_with_timeout(program, timeout):
 			time.sleep(0.5)
 			now = datetime.datetime.now()
 			if (now - start).seconds > timeout:
+				warning_msg("Timing out! (" + str((now-start).seconds) + "s)")
 				os.kill(process.pid, signal.SIGKILL)
 				os.waitpid(-1, os.WNOHANG)
 				raise Exception("Run timed out!", TIMEOUT_ERROR)
@@ -59,7 +60,7 @@ def run_filter(raw, filter_function):
 	if match:
 		return match.group(1)
 	else:
-		warning_msg("Filter '" + filter_function.pattern + "' failed to collect data!")
+		error_msg("Filter returned NULL! " + filter_function.pattern)
 		return None
 
 # Should do similar to the above, but return a list of all matches

@@ -2,7 +2,7 @@ import re
 
 import stats
 
-root = "/disk/data5/s0562338/trunk_multicore/"
+root = "/disk/data5/s0562338/multicore-arcsim/"
 
 ### PROGRAMS
 programs = { \
@@ -15,18 +15,18 @@ benchmark_root = root + "tests/regression/tests/"
 
 ### DEFINE BENCHMARK GROUPS HERE
 splash_benchmarks = [ \
-("barnes.x", "multicore/splash/barnes", "runcmd", None), \
-("cholesky.x", "multicore/splash/cholesky", "runcmd", None), \
-("fft.x", "multicore/splash/fft", "runcmd", None), \
-("fmm.x", "multicore/splash/fmm", "runcmd", None), \
-("lu.x", "multicore/splash/lu", "runcmd", None), \
-("ocean.x", "multicore/splash/ocean", "runcmd", None), \
-("radiosity.x", "multicore/splash/radiosity", "runcmd", None), \
-("radix.x", "multicore/splash/radix", "runcmd", None), \
-("raytrace.x", "multicore/splash/raytrace", "runcmd", None), \
-("volrend.x", "multicore/splash/volrend", "runcmd", None), \
-("water-nsquared.x", "multicore/splash/water-nsquared", "runcmd", None), \
-("water-spatial.x", "multicore/splash/water-spatial", "runcmd", None), \
+("barnes.x", "multicore/splash/barnes", "runcmd", 400), \
+("cholesky.x", "multicore/splash/cholesky", "runcmd", 400), \
+("fft.x", "multicore/splash/fft", "runcmd", 2000), \
+("fmm.x", "multicore/splash/fmm", "runcmd", 600), \
+("lu.x", "multicore/splash/lu", "runcmd", 400), \
+("ocean.x", "multicore/splash/ocean", "runcmd", 2000), \
+("radiosity.x", "multicore/splash/radiosity", "runcmd", 1000), \
+("radix.x", "multicore/splash/radix", "runcmd", 300), \
+("raytrace.x", "multicore/splash/raytrace", "runcmd", 400), \
+("volrend.x", "multicore/splash/volrend", "runcmd", 1500), \
+("water-nsquared.x", "multicore/splash/water-nsquared", "runcmd", 600), \
+("water-spatial.x", "multicore/splash/water-spatial", "runcmd", 600), \
 ]
 
 # REGISTER BENCHMARK GROUPS HERE
@@ -39,7 +39,7 @@ argument_variables = {}
 
 # ARGUMENTS THAT SHOULD BE VARIED IN FILES HERE
 file_argument_variables = { \
-"cores": (root + "etc/skeleton-encore.arc", root + "etc/encore.arc", "INSERTCORESHERE", [4,32,128]), \
+"cores": (root + "etc/skeleton-encore.arc", root + "etc/encore.arc", "INSERTCORESHERE", [16,8,4,1]), \
 }
 
 # ARGUMENTS THAT SHOULD ALWAYS BE THERE
@@ -47,14 +47,16 @@ core_arguments = "--fast --fast-num-threads=3 --verbose"
 benchmark_argument = "-e"
 
 # ITERATIONS
-iterations = 1
+iterations = 5
 
 # DEFINE FILTERS HERE
 time_filter = re.compile("\[SYSTEM\] Total Simulation time[ ]*= ([^ ]+) \[Seconds\]")
 mips_filter = re.compile("\[SYSTEM\] Overall Simulation rate[ ]*= ([^ ]+) \[MIPS\]")
-interp_inst_filter = re.compile("\[SYSTEM\] Total Interpreted instructions[ ]*= (\d+)")
-trans_inst_filter = re.compile("\[SYSTEM\] Total Translated instructions[ ]*= (\d+)")
+interp_inst_filter = re.compile("\[SYSTEM\] Total Interpreted instructions[ ]*= (\d+) \[Instructions\]")
+trans_inst_filter = re.compile("\[SYSTEM\] Total Translated instructions[ ]*= (\d+) \[Instructions\]")
 total_inst_filter = re.compile("\[SYSTEM\] Total Instructions[ ]*= (\d+)")
+avg_jit_time_filter = re.compile("Average JIT Compilation Time: ([\d\.]+)")
+num_reg_trans_filter = re.compile("Num registered translations: (\d+)")
 
 # REGISTER FILTERS HERE
 filters = { \
@@ -63,10 +65,12 @@ filters = { \
 "interpreted instructions": interp_inst_filter, \
 "translated instructions": trans_inst_filter, \
 "total instructions": total_inst_filter, \
+"average jit time": avg_jit_time_filter, \
+"registered translations": num_reg_trans_filter, \
 }
 
 # This is used by certain output formats.
-filter_order = ["time", "mips", "interpreted instructions", "translated instructions", "total instructions"]
+filter_order = ["time", "mips", "interpreted instructions", "translated instructions", "total instructions", "average jit time", "registered translations"]
 
 # REGISTER BENCHMARK (ACROSS ALL RUNS OF BENCHMARK) AGGREGATES HERE
 benchmark_aggregates = { \
