@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, subprocess, re, sys, string, json, argparse, datetime, time, signal
+import os, subprocess, re, sys, string, json, argparse, datetime, time, signal, tempfile
 
 import stats, mailer, args, ecd
 from config import config
@@ -23,8 +23,9 @@ def execute_and_capture_output(program):
 
 def execute_and_capture_output_with_timeout(program, timeout):
 	try:
+		output_file = tempfile.SpooledTemporaryFile()
 		start = datetime.datetime.now()
-		process = subprocess.Popen(program, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		process = subprocess.Popen(program, shell=True, stdout=output_file, stderr=subprocess.STDOUT)
 		while process.poll() is None:
 			time.sleep(0.5)
 			now = datetime.datetime.now()
@@ -33,7 +34,10 @@ def execute_and_capture_output_with_timeout(program, timeout):
 				os.kill(process.pid, signal.SIGKILL)
 				os.waitpid(-1, os.WNOHANG)
 				raise Exception("Run timed out!", TIMEOUT_ERROR)
-		return str(process.stdout.read())
+		output_file.seek(0)
+		raw = output_file.read()
+		output_file.close()
+		return str(raw)
 	except subprocess.CalledProcessError as e:
 		# TODO: Work out how on earth I get information about the error!
 		raise Exception("Run failed!", FAILURE_ERROR)
