@@ -195,7 +195,7 @@ def run(suite):
 
 			# There were none, so simply run this program with no extra arguments
 			debug_msg(1, "BEGIN EXPERIMENT: " + exp_name)
-			total_result_table["experiments"][exp_name] = run_experiment(suite, program, program_alias)
+			total_result_table["experiments"][exp_name] = run_experiment(suite, program, program_alias, exp_name)
 
 		else:
 			# There are some, so use args.get_experiment_arguments to get a list of all combos, iterate over them.	
@@ -217,13 +217,13 @@ def run(suite):
 
 				exp_name = program_alias + " " + exp_params
 				debug_msg(1, "BEGIN EXPERIMENT: " + exp_name)
-				total_result_table["experiments"][exp_name] = run_experiment(suite, program, program_alias, experiment_arguments_string)
+				total_result_table["experiments"][exp_name] = run_experiment(suite, program, program_alias, exp_name, experiment_arguments_string)
 
 
 	return total_result_table
 
 # An "experiment" is categorised as any program + the arguments we wish to use for that program.
-def run_experiment(suite, program, program_alias, experiment_arguments = ""): 
+def run_experiment(suite, program, program_alias, exp_name, experiment_arguments = ""): 
 
 	experiment_table = {}
 	experiment_table["benchmarks"] = {}
@@ -283,7 +283,7 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 			try:
 				# Actually execute the benchmark
 				if config["loadraw"]:
-					raw = load_raw_output(program_alias + experiment_arguments + benchmark, i)
+					raw = load_raw_output(exp_name + experiment_arguments + benchmark, i)
 					debug_msg(1, "(loaded from file...)")
 				elif timeout:
 					raw = execute_and_capture_output_with_timeout(invocation, timeout)
@@ -291,7 +291,7 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 					raw = execute_and_capture_output(invocation)
 
 				# Save the output, if required
-				save_raw_output(program_alias + experiment_arguments + benchmark, i, raw)
+				save_raw_output(exp_name + experiment_arguments + benchmark, i, raw)
 
 				# Now collect the fields using our provided filters.
 				for (field, field_filter) in suite.filters.items():
