@@ -93,7 +93,7 @@ def get_raw_filename(invocation, iteration):
 	filename = invocation.replace(" ", "") 
 	filename = filename.replace("/", "") 
 	filename += "-i" + str(iteration+1)
-	
+	return filename
 
 def save_raw_output(invocation, iteration, raw):
 	if config["saveraw"]:
@@ -114,8 +114,8 @@ def save_raw_output(invocation, iteration, raw):
 def load_raw_output(invocation, iteration):
 	directory = config["loadraw_dir"]
 	filename = get_raw_filename(invocation, iteration)
-	save_location = directory + "/" + filename
-	f = open(save_location, "r")
+	load_location = directory + "/" + filename
+	f = open(load_location, "r")
 	raw = f.read()
 	f.close()
 	return raw
@@ -282,11 +282,11 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 			raw = ""
 			try:
 				# Actually execute the benchmark
-				if timeout:
-					raw = execute_and_capture_output_with_timeout(invocation, timeout)
-				elif config["loadraw"]:
+				if config["loadraw"]:
 					raw = load_raw_output(program_alias + experiment_arguments + benchmark, i)
 					debug_msg(1, "(loaded from file...)")
+				elif timeout:
+					raw = execute_and_capture_output_with_timeout(invocation, timeout)
 				else:
 					raw = execute_and_capture_output(invocation)
 
