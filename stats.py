@@ -1,5 +1,5 @@
 try:
-	reduce(sum, [])
+	reduce(sum, [1])
 except NameError:
 	from functools import reduce
 

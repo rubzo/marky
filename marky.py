@@ -60,7 +60,7 @@ def run_filter(raw, filter_function):
 	if match:
 		return match.group(1)
 	else:
-		error_msg("Filter returned NULL! " + filter_function.pattern)
+		error_msg("Filter returned None! Filter: " + filter_function.pattern)
 		return None
 
 # Should do similar to the above, but return a list of all matches
@@ -89,6 +89,12 @@ def cleanup_run(run):
 		run[field] = convert_data(run[field])
 	return run
 
+def get_raw_filename(invocation, iteration):
+	filename = invocation.replace(" ", "") 
+	filename = filename.replace("/", "") 
+	filename += "-i" + str(iteration+1)
+	
+
 def save_raw_output(invocation, iteration, raw):
 	if config["saveraw"]:
 
@@ -97,15 +103,22 @@ def save_raw_output(invocation, iteration, raw):
 			debug_msg(3, "Raw output directory doesn't exist! Creating...")
 			os.mkdir(directory)
 
-		filename = invocation.replace(" ", "") 
-		filename = filename.replace("/", "") 
-		filename += "-i" + str(iteration+1)
+		filename = get_raw_filename(invocation, iteration)
 		save_location = directory + "/" + filename
 		f = open(save_location, "w")
 		f.write(raw)
 		f.close()
 
 		debug_msg(3, "Saved raw output to " + save_location)
+
+def load_raw_output(invocation, iteration):
+	directory = config["loadraw_dir"]
+	filename = get_raw_filename(invocation, iteration)
+	save_location = directory + "/" + filename
+	f = open(save_location, "r")
+	raw = f.read()
+	f.close()
+	return raw
 	
 # This converts the provided results table to a string containing a CSV representation.
 def convert_to_csv(results):
@@ -271,6 +284,9 @@ def run_experiment(suite, program, program_alias, experiment_arguments = ""):
 				# Actually execute the benchmark
 				if timeout:
 					raw = execute_and_capture_output_with_timeout(invocation, timeout)
+				elif config["loadraw"]:
+					raw = load_raw_output(program_alias + experiment_arguments + benchmark, i)
+					debug_msg(1, "(loaded from file...)")
 				else:
 					raw = execute_and_capture_output(invocation)
 
@@ -352,6 +368,8 @@ def main():
 			help='Choose which format to print the data in. (default: json)')
 	parser.add_argument('--load', '-l', dest='should_load', nargs=1, metavar='FILE', 
 			help='Load previous results from a file. (supports JSON only)')
+	parser.add_argument('--load-raw', '-lr', dest='should_loadraw', nargs=1, metavar='DIR', 
+			help='Load the raw output from each run from the given directory.')
 	parser.add_argument('--save', '-s', dest='should_save', nargs=1, metavar='FILE', 
 			help='Output the results into a file.')
 	parser.add_argument('--save-format', '-sf', dest='savefmt', nargs=1, choices=formats, 
@@ -397,13 +415,21 @@ def main():
 		config["saveraw"] = True
 		config["saveraw_dir"] = config["original_dir"] + "/" + args.should_saveraw[0]
 
+	config["loadraw"] = False
+	if args.should_loadraw:
+		config["loadraw"] = True
+		config["loadraw_dir"] = config["original_dir"] + "/" + args.should_loadraw[0]
+		if not os.path.exists(config["loadraw_dir"]):
+			error_msg("Raw results directory required for loading doesn't exist!")
+		debug_msg(1, "Will load output from " + config["loadraw_dir"])
+
 	config["should_warmup"] = False
 	if args.should_warmup:
 		config["should_warmup"] = True
 
 	results = None
 	if args.should_load:
-		debug_msg(1, "Loading previous results from " + args.should_load[0])
+		debug_msg(1, "Loading previous results table from " + args.should_load[0])
 		json_file = open(args.should_load[0], "r")
 		results = json.load(json_file)
 		json_file.close()
