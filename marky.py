@@ -93,27 +93,33 @@ def cleanup_run(run):
 		run[field] = convert_data(run[field])
 	return run
 
-def get_raw_filename(invocation, iteration):
-	filename = invocation.replace(" ", "") 
+def get_raw_filename(name, iteration):
+	filename = name.replace(" ", "") 
 	filename = filename.replace("/", "") 
 	filename += "-i" + str(iteration+1)
 	return filename
 
-def save_raw_output(invocation, iteration, raw):
-	if config["saveraw"]:
+def check_raw_output_exists(name, iteration):
+	if config["loadraw"]:
+		filename = get_raw_filename(name, iteration)
+		load_location = config["loadraw_dir"] + "/" + filename
+		return os.path.exists(load_location)
+	else:
+		return False
 
-		directory = config["saveraw_dir"]
-		if not os.path.exists(directory):
-			debug_msg(3, "Raw output directory doesn't exist! Creating...")
-			os.mkdir(directory)
+def save_raw_output(name, iteration, raw):
+	directory = config["saveraw_dir"]
+	if not os.path.exists(directory):
+		debug_msg(3, "Raw output directory doesn't exist! Creating...")
+		os.mkdir(directory)
 
-		filename = get_raw_filename(invocation, iteration)
-		save_location = directory + "/" + filename
-		f = open(save_location, "w")
-		f.write(raw)
-		f.close()
+	filename = get_raw_filename(name, iteration)
+	save_location = directory + "/" + filename
+	f = open(save_location, "w")
+	f.write(raw)
+	f.close()
 
-		debug_msg(3, "Saved raw output to " + save_location)
+	debug_msg(3, "Saved raw output to " + save_location)
 
 def load_raw_output(invocation, iteration):
 	directory = config["loadraw_dir"]
@@ -285,9 +291,11 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 			# string containing the raw output from the benchmark
 			raw = ""
 			try:
+				raw_output_name = exp_name + experiment_arguments + benchmark
+
 				# Actually execute the benchmark
-				if config["loadraw"]:
-					raw = load_raw_output(exp_name + experiment_arguments + benchmark, i)
+				if config["loadraw"] and check_raw_output_exists(raw_output_name, i):
+					raw = load_raw_output(raw_output_name, i)
 					debug_msg(1, "(loaded from file...)")
 				elif timeout:
 					raw = execute_and_capture_output_with_timeout(invocation, timeout)
@@ -295,7 +303,8 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 					raw = execute_and_capture_output(invocation)
 
 				# Save the output, if required
-				save_raw_output(exp_name + experiment_arguments + benchmark, i, raw)
+				if config["saveraw"]:
+					save_raw_output(raw_output_name, i, raw)
 
 				# Now collect the fields using our provided filters.
 				for (field, field_filter) in suite.filters.items():
