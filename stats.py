@@ -77,7 +77,8 @@ def perform_experiment_aggregation(suite, experiment_table):
 		# Go through the benchmarks executed in this experiment... 
 		for (name, benchmark) in experiment_table["benchmarks"].items():
 			# Populating the run_table
-			run_table.append(benchmark["aggregates"][aggregate_name])
+			if "aggregates" in benchmark:
+				run_table.append(benchmark["aggregates"][aggregate_name])
 
 		# Now present the run table to aggregate.aggregate, which simply treats it as it would if it were 
 		# aggregating a list of runs for a single benchmark!
