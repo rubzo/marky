@@ -295,6 +295,8 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 			try:
 				raw_output_name = exp_name + experiment_arguments + benchmark
 
+				start = datetime.datetime.now()
+
 				# Actually execute the benchmark
 				if config["loadraw"] and check_raw_output_exists(raw_output_name, i):
 					raw = load_raw_output(raw_output_name, i)
@@ -304,6 +306,8 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 				else:
 					raw = execute_and_capture_output(invocation)
 
+				end = datetime.datetime.now()
+
 				# Save the output, if required
 				if config["saveraw"]:
 					save_raw_output(raw_output_name, i, raw)
@@ -312,12 +316,26 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 				for (field, field_filter) in suite.filters.items():
 					run[field] = run_filter(raw, field_filter)
 
+				if not config["loadraw"]:
+					delta = end - start
+					runtime = float(delta.seconds)
+					runtime += ( float((delta.microseconds)) / 1000000.0 )
+
+					debug_msg(2, "Took " + str(runtime) + " seconds.")
+
+					if config["should_time"] and not config["loadraw"]:
+						run["marky runtime"] = str(runtime)
+
 				# Collected data is all strings currently; convert to the correct types.
 				run = cleanup_run(run)
 
 				# Save this run
 				run_table.append(run)
+
 			except Exception as e:
+				if len(e.args) < 2:
+					raise e
+
 				if e.args[1] == TIMEOUT_ERROR:
 					debug_msg(1, "Run timed out... (timeout is " + str(timeout) + "s)")
 					timedout_iterations += 1
@@ -378,6 +396,8 @@ def main():
 			help='Turn off aggregation calculation for this session.')
 	parser.add_argument('--warmup', '-w', dest='should_warmup', action='store_true', 
 			help='Perform a warmup run of each benchmark that is not recorded.')
+	parser.add_argument('--time', '-t', dest='should_time', action='store_true', 
+			help='Use marky to measure the runtime of any experiments.')
 	parser.add_argument('--explain', '-e', dest='should_explain', action='store_true', 
 			help='Explain the experiments that will be run by the provided ECD.')
 	parser.add_argument('--print', '-p', dest='should_print', action='store_true', 
@@ -408,7 +428,7 @@ def main():
 			help='Assuming only two experiments will be run, calculate the speedups.')
 	args = parser.parse_args()
 
-	config["debuglevel"] = 1
+	config["debuglevel"] = 2
 	if args.debuglevel:
 		config["debuglevel"] = args.debuglevel[0]
 	if args.quiet:
@@ -444,6 +464,10 @@ def main():
 	config["should_warmup"] = False
 	if args.should_warmup:
 		config["should_warmup"] = True
+
+	config["should_time"] = False
+	if args.should_time:
+		config["should_time"] = True
 
 	results = None
 	if args.should_load:
