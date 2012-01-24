@@ -9,6 +9,7 @@ from debug import debug_msg, error_msg, warning_msg
 # Codes used by the execute_and_capture_output methods.
 TIMEOUT_ERROR = 1
 FAILURE_ERROR = 2
+FILTER_FAILED_ERROR = 3
 
 # Function used to capture all output from a program it executes.
 # Executes the whole program before returning any output.
@@ -64,8 +65,8 @@ def run_filter(raw, filter_function):
 	if match:
 		return match.group(1)
 	else:
-		error_msg("Filter returned None! Filter: " + filter_function.pattern)
-		return None
+		warning_msg("Filter returned None! Filter was: " + filter_function.pattern)
+		raise Exception("Filter failed!", FILTER_FAILED_ERROR)
 
 # Should do similar to the above, but return a list of all matches
 # that were between parens.
@@ -95,7 +96,8 @@ def cleanup_run(run):
 
 def get_raw_filename(name, iteration):
 	filename = name.replace(" ", "") 
-	filename = filename.replace("/", "") 
+	filename = filename.replace("/", "_") 
+	filename = filename.replace(":", "_") 
 	filename += "-i" + str(iteration+1)
 	return filename
 
@@ -323,6 +325,9 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 				if e.args[1] == FAILURE_ERROR:
 					debug_msg(1, "Run failed...")
 					failed_iterations += 1
+				if e.args[1] == FILTER_FAILED_ERROR:
+					debug_msg(1, "Filter failed...")
+					failed_iterations += 1
 
 		# Finished running this benchmark for X iterations...
 		benchmark_result = {}
@@ -451,6 +456,8 @@ def main():
 		os.chdir(suite.benchmark_root)
 		results = run(suite)
 		os.chdir(config["original_dir"])
+
+	results["description"] = ecd.convert_ecd_to_description(suite)
 
 	if not args.disable_agg:
 		stats.perform_aggregation(suite, results)	

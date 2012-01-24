@@ -71,3 +71,25 @@ def check_ecd(suite):
 	if debug.seen_warnings():
 		debug.error_msg("Execution Configuration Description was invalid!")
 		debug.reset_warnings()
+
+def convert_ecd_to_description(suite):
+	description = {}
+
+	description["programs"] = suite.programs
+	description["benchmarks"] = suite.benchmarks
+	description["argument variables"] = suite.argument_variables
+	description["file argument variables"] = suite.file_argument_variables
+	description["iterations"] = suite.iterations
+	description["core arguments"] = suite.core_arguments
+	description["filters"] = []
+	for (filter_name, f) in suite.filters.items():
+		description["filters"].append((filter_name, f.pattern))
+	description["aggregates"] = [] 
+
+	for (aggregate_name, a) in suite.benchmark_aggregates.items():
+		extra = ""
+		if (aggregate_name in suite.experiment_aggregates):
+			extra = " (*** experiment aggregate ***)"
+		description["aggregates"].append(aggregate_name + extra) 
+
+	return description	
