@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os, subprocess, re, sys, string, json, argparse, datetime, time, signal, tempfile
-
+import types
 import stats, mailer, args, ecd
 #import speedup
 from config import config
@@ -187,6 +187,24 @@ def get_arguments_from_file(filename):
 	f.close()
 	return args
 
+def execute_post_function(post_function, post_function_arguments, name, iteration, timestamp):	
+	actual_post_function_arguments = []
+	for arg in post_function_arguments:
+		
+		# Awesome hack!!1
+		if (arg == "GETUNIQUEFILENAME"):
+			arg = "arcsimMemProfile-" + get_raw_filename(name, iteration) + ".csv"
+		elif (arg == "GETTIMESTAMP"):
+			arg = timestamp
+		
+		
+		if (isinstance(arg, types.FunctionType)):
+			actual_post_function_arguments.append(arg())
+		else:
+			actual_post_function_arguments.append(arg)
+	
+	post_function(*actual_post_function_arguments)
+	
 # -----
 # Functions that should be exposed to main are below:
 # -----
@@ -260,7 +278,7 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 			benchmark = get_arguments_from_file(executescript)
 
 		# Construct the command used to execute the benchmark
-		invocation = " ".join([program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
+		invocation = " ".join([suite.pre_arguments, program, suite.core_arguments, experiment_arguments, suite.benchmark_argument, benchmark])
 
 		if config["should_warmup"]:
 			debug_msg(1, "RUN: '" + invocation + "' (WARMUP)")
@@ -297,6 +315,8 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 				raw_output_name = exp_name + experiment_arguments + benchmark
 
 				start = datetime.datetime.now()
+				
+				timestamp = time.time() * 1000
 
 				# Actually execute the benchmark
 				if config["loadraw"] and check_raw_output_exists(raw_output_name, i):
@@ -347,6 +367,9 @@ def run_experiment(suite, program, program_alias, exp_name, experiment_arguments
 				if e.args[1] == FILTER_FAILED_ERROR:
 					debug_msg(1, "Filter failed...")
 					failed_iterations += 1
+					
+		if ("post_function" in suite.__dict__ and "post_function_arguments" in suite.__dict__):
+			execute_post_function(suite.post_function, suite.post_function_arguments, raw_output_name, i, timestamp)
 
 		# Finished running this benchmark for X iterations...
 		benchmark_result = {}
