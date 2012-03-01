@@ -37,7 +37,6 @@ splash_benchmarks = [ \
 # REGISTER BENCHMARK GROUPS HERE
 benchmarks = { \
 "eembc default": eembc_default_benchmarks, \
-"eembc large": eembc_large_benchmarks, \
 }
 
 # ARGUMENTS THAT SHOULD BE VARIED

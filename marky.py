@@ -3,6 +3,7 @@
 import os, subprocess, re, sys, string, json, argparse, datetime, time, signal, tempfile
 
 import stats, mailer, args, ecd
+#import speedup
 from config import config
 from debug import debug_msg, error_msg, warning_msg
 
@@ -486,8 +487,8 @@ def main():
 	if not args.disable_agg:
 		stats.perform_aggregation(suite, results)	
 
-	if args.should_calculate_speedups:
-		stats.calculate_speedups(results)
+	#if args.should_calculate_speedups:
+	#	speedup.calculate(results)
 
 	if args.should_print:
 		formatter_name = default_print_format

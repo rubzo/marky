@@ -98,31 +98,3 @@ def perform_aggregation(suite, results):
 		if successes > 0 and len(suite.experiment_aggregates) > 0:
 			exp["aggregates"] = {}
 			perform_experiment_aggregation(suite, exp)
-
-
-def calculate_speedups(results):
-	assert len(results["experiments"]) == 2
-	results["speedups"] = {}
-	exps = results["experiments"].keys()
-	calculate_benchmark_speedups(results, exps[0], exps[1])
-	calculate_benchmark_speedups(results, exps[1], exps[0])
-
-# TODO: This is not generic yet!
-def calculate_benchmark_speedups(results, before_name, after_name):
-	# Make sure the speedups field is present.
-	if "speedups" not in results.keys():
-		results["speedups"] = {}
-
-	speedup_table = {}
-	before = results["experiments"][before_name]
-	after = results["experiments"][after_name]
-	benchmarks = before["benchmarks"].keys()
-	for bm_name in benchmarks:
-		average_runtime = before["benchmarks"][bm_name]["aggregates"]["arithmetric mean"]["time"]
-		speedups = []
-		for run in after["benchmarks"][bm_name]["runs"]:
-			runtime = run["time"]
-			speedup = float(average_runtime) / runtime
-			speedups.append(speedup)
-		speedup_table[bm_name] = arithmetric_mean(speedups)
-	results["speedups"][before_name + " -> " + after_name] = speedup_table
